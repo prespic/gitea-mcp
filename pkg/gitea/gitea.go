@@ -1,52 +1,47 @@
 package gitea
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"sync"
-
-	"gitea.com/gitea/gitea-mcp/pkg/flag"
-	"gitea.com/gitea/gitea-mcp/pkg/log"
 
 	"code.gitea.io/sdk/gitea"
+	mcpContext "gitea.com/gitea/gitea-mcp/pkg/context"
+	"gitea.com/gitea/gitea-mcp/pkg/flag"
 )
 
-var (
-	client     *gitea.Client
-	clientOnce sync.Once
-)
+func NewClient(token string) (*gitea.Client, error) {
+	httpClient := &http.Client{
+		Transport: http.DefaultTransport,
+	}
 
-func Client() *gitea.Client {
-	clientOnce.Do(func() {
-		var err error
-		if client != nil {
-			return
+	opts := []gitea.ClientOption{
+		gitea.SetToken(token),
+	}
+	if flag.Insecure {
+		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
 		}
+	}
+	opts = append(opts, gitea.SetHTTPClient(httpClient))
+	if flag.Debug {
+		opts = append(opts, gitea.SetDebugMode())
+	}
+	client, err := gitea.NewClient(flag.Host, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("create gitea client err: %w", err)
+	}
 
-		httpClient := &http.Client{
-			Transport: http.DefaultTransport,
-		}
+	// Set user agent for the client
+	client.SetUserAgent(fmt.Sprintf("gitea-mcp-server/%s", flag.Version))
+	return client, nil
+}
 
-		opts := []gitea.ClientOption{
-			gitea.SetToken(flag.Token),
-		}
-		if flag.Insecure {
-			httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
-		}
-		opts = append(opts, gitea.SetHTTPClient(httpClient))
-		if flag.Debug {
-			opts = append(opts, gitea.SetDebugMode())
-		}
-		client, err = gitea.NewClient(flag.Host, opts...)
-		if err != nil {
-			log.Fatalf("create gitea client err: %v", err)
-		}
-
-		// Set user agent for the client
-		client.SetUserAgent(fmt.Sprintf("gitea-mcp-server/%s", flag.Version))
-	})
-	return client
+func ClientFromContext(ctx context.Context) (*gitea.Client, error) {
+	token, ok := ctx.Value(mcpContext.TokenContextKey).(string)
+	if !ok {
+		token = flag.Token
+	}
+	return NewClient(token)
 }

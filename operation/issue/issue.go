@@ -140,7 +140,11 @@ func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("index is required"))
 	}
-	issue, _, err := gitea.Client().GetIssue(owner, repo, int64(index))
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issue, _, err := client.GetIssue(owner, repo, int64(index))
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
 	}
@@ -177,7 +181,11 @@ func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 			PageSize: int(pageSize),
 		},
 	}
-	issues, _, err := gitea.Client().ListRepoIssues(owner, repo, opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issues, _, err := client.ListRepoIssues(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issues err: %v", owner, repo, err))
 	}
@@ -202,7 +210,11 @@ func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("body is required"))
 	}
-	issue, _, err := gitea.Client().CreateIssue(owner, repo, gitea_sdk.CreateIssueOption{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issue, _, err := client.CreateIssue(owner, repo, gitea_sdk.CreateIssueOption{
 		Title: title,
 		Body:  body,
 	})
@@ -234,7 +246,11 @@ func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	opt := gitea_sdk.CreateIssueCommentOption{
 		Body: body,
 	}
-	issueComment, _, err := gitea.Client().CreateIssueComment(owner, repo, int64(index), opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issueComment, _, err := client.CreateIssueComment(owner, repo, int64(index), opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/%v/issue/%v/comment err: %v", owner, repo, int64(index), err))
 	}
@@ -280,7 +296,11 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 		opt.State = ptr.To(gitea_sdk.StateType(state))
 	}
 
-	issue, _, err := gitea.Client().EditIssue(owner, repo, int64(index), opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issue, _, err := client.EditIssue(owner, repo, int64(index), opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
 	}
@@ -309,7 +329,11 @@ func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	opt := gitea_sdk.EditIssueCommentOption{
 		Body: body,
 	}
-	issueComment, _, err := gitea.Client().EditIssueComment(owner, repo, int64(commentID), opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issueComment, _, err := client.EditIssueComment(owner, repo, int64(commentID), opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/issues/comments/%v err: %v", owner, repo, int64(commentID), err))
 	}
@@ -332,7 +356,11 @@ func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("index is required"))
 	}
 	opt := gitea_sdk.ListIssueCommentOptions{}
-	issue, _, err := gitea.Client().ListIssueComments(owner, repo, int64(index), opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issue, _, err := client.ListIssueComments(owner, repo, int64(index), opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issues/%v/comments err: %v", owner, repo, int64(index), err))
 	}

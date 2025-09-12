@@ -139,7 +139,10 @@ To configure the MCP server for Gitea, add the following to your MCP configurati
 {
   "mcpServers": {
     "gitea": {
-      "url": "http://localhost:8080/sse"
+      "url": "http://localhost:8080/sse",
+      "headers": {
+        "Authorization": "Bearer <your personal access token>"
+      }
     }
   }
 }
@@ -151,7 +154,10 @@ To configure the MCP server for Gitea, add the following to your MCP configurati
 {
   "mcpServers": {
     "gitea": {
-      "url": "http://localhost:8080/mcp"
+      "url": "http://localhost:8080/mcp",
+      "headers": {
+        "Authorization": "Bearer <your personal access token>"
+      }
     }
   }
 }

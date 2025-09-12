@@ -63,7 +63,11 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		SHA:  sha,
 		Path: path,
 	}
-	commits, _, err := gitea.Client().ListRepoCommits(owner, repo, opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	commits, _, err := client.ListRepoCommits(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list repo commits err: %v", err))
 	}

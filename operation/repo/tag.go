@@ -102,7 +102,11 @@ func CreateTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	target, _ := req.GetArguments()["target"].(string)
 	message, _ := req.GetArguments()["message"].(string)
 
-	_, _, err := gitea.Client().CreateTag(owner, repo, gitea_sdk.CreateTagOption{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, _, err = client.CreateTag(owner, repo, gitea_sdk.CreateTagOption{
 		TagName: tagName,
 		Target:  target,
 		Message: message,
@@ -129,7 +133,11 @@ func DeleteTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 		return nil, fmt.Errorf("tag_name is required")
 	}
 
-	_, err := gitea.Client().DeleteTag(owner, repo, tagName)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, err = client.DeleteTag(owner, repo, tagName)
 	if err != nil {
 		return nil, fmt.Errorf("delete tag error: %v", err)
 	}
@@ -152,7 +160,11 @@ func GetTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult
 		return nil, fmt.Errorf("tag_name is required")
 	}
 
-	tag, _, err := gitea.Client().GetTag(owner, repo, tagName)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	tag, _, err := client.GetTag(owner, repo, tagName)
 	if err != nil {
 		return nil, fmt.Errorf("get tag error: %v", err)
 	}
@@ -173,7 +185,11 @@ func ListTagsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 	page, _ := req.GetArguments()["page"].(float64)
 	pageSize, _ := req.GetArguments()["pageSize"].(float64)
 
-	tags, _, err := gitea.Client().ListRepoTags(owner, repo, gitea_sdk.ListRepoTagsOptions{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	tags, _, err := client.ListRepoTags(owner, repo, gitea_sdk.ListRepoTagsOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),
 			PageSize: int(pageSize),

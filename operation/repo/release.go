@@ -134,7 +134,11 @@ func CreateReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	isPreRelease, _ := req.GetArguments()["is_pre_release"].(bool)
 	body, _ := req.GetArguments()["body"].(string)
 
-	_, _, err := gitea.Client().CreateRelease(owner, repo, gitea_sdk.CreateReleaseOption{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, _, err = client.CreateRelease(owner, repo, gitea_sdk.CreateReleaseOption{
 		TagName:      tagName,
 		Target:       target,
 		Title:        title,
@@ -164,7 +168,11 @@ func DeleteReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 		return nil, fmt.Errorf("id is required")
 	}
 
-	_, err := gitea.Client().DeleteRelease(owner, repo, int64(id))
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, err = client.DeleteRelease(owner, repo, int64(id))
 	if err != nil {
 		return nil, fmt.Errorf("delete release error: %v", err)
 	}
@@ -187,7 +195,11 @@ func GetReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 		return nil, fmt.Errorf("id is required")
 	}
 
-	release, _, err := gitea.Client().GetRelease(owner, repo, int64(id))
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	release, _, err := client.GetRelease(owner, repo, int64(id))
 	if err != nil {
 		return nil, fmt.Errorf("get release error: %v", err)
 	}
@@ -206,7 +218,11 @@ func GetLatestReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return nil, fmt.Errorf("repo is required")
 	}
 
-	release, _, err := gitea.Client().GetLatestRelease(owner, repo)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	release, _, err := client.GetLatestRelease(owner, repo)
 	if err != nil {
 		return nil, fmt.Errorf("get latest release error: %v", err)
 	}
@@ -237,7 +253,11 @@ func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	page, _ := req.GetArguments()["page"].(float64)
 	pageSize, _ := req.GetArguments()["pageSize"].(float64)
 
-	releases, _, err := gitea.Client().ListReleases(owner, repo, gitea_sdk.ListReleasesOptions{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	releases, _, err := client.ListReleases(owner, repo, gitea_sdk.ListReleasesOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),
 			PageSize: int(pageSize),

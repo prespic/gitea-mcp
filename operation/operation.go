@@ -1,7 +1,10 @@
 package operation
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"gitea.com/gitea/gitea-mcp/operation/issue"
@@ -11,6 +14,7 @@ import (
 	"gitea.com/gitea/gitea-mcp/operation/search"
 	"gitea.com/gitea/gitea-mcp/operation/user"
 	"gitea.com/gitea/gitea-mcp/operation/version"
+	mcpContext "gitea.com/gitea/gitea-mcp/pkg/context"
 	"gitea.com/gitea/gitea-mcp/pkg/flag"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
 
@@ -44,6 +48,20 @@ func RegisterTool(s *server.MCPServer) {
 	s.DeleteTools("")
 }
 
+func getContextWithToken(ctx context.Context, r *http.Request) context.Context {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return ctx
+	}
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return ctx
+	}
+
+	return context.WithValue(ctx, mcpContext.TokenContextKey, parts[1])
+}
+
 func Run() error {
 	mcpServer = newMCPServer(flag.Version)
 	RegisterTool(mcpServer)
@@ -57,6 +75,7 @@ func Run() error {
 	case "sse":
 		sseServer := server.NewSSEServer(
 			mcpServer,
+			server.WithSSEContextFunc(getContextWithToken),
 		)
 		log.Infof("Gitea MCP SSE server listening on :%d", flag.Port)
 		if err := sseServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
@@ -67,7 +86,7 @@ func Run() error {
 			mcpServer,
 			server.WithLogger(log.New()),
 			server.WithHeartbeatInterval(30*time.Second),
-			server.WithStateLess(true),
+			server.WithHTTPContextFunc(getContextWithToken),
 		)
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
 		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {

@@ -79,7 +79,11 @@ func getIntArg(req mcp.CallToolRequest, name string, def int) int {
 // Logs invocation, fetches current user info from gitea, wraps result for MCP.
 func GetUserInfoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("[User] Called GetUserInfoFn")
-	user, _, err := gitea.Client().GetMyUserInfo()
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	user, _, err := client.GetMyUserInfo()
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get user info err: %v", err))
 	}
@@ -100,7 +104,11 @@ func GetUserOrgsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			PageSize: pageSize,
 		},
 	}
-	orgs, _, err := gitea.Client().ListMyOrgs(opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	orgs, _, err := client.ListMyOrgs(opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get user orgs err: %v", err))
 	}

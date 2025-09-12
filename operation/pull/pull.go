@@ -84,7 +84,11 @@ func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("index is required"))
 	}
-	pr, _, err := gitea.Client().GetPullRequest(owner, repo, int64(index))
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	pr, _, err := client.GetPullRequest(owner, repo, int64(index))
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
 	}
@@ -125,7 +129,11 @@ func ListRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 			PageSize: int(pageSize),
 		},
 	}
-	pullRequests, _, err := gitea.Client().ListRepoPullRequests(owner, repo, opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	pullRequests, _, err := client.ListRepoPullRequests(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list %v/%v/pull_requests err: %v", owner, repo, err))
 	}
@@ -159,7 +167,11 @@ func CreatePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("base is required"))
 	}
-	pr, _, err := gitea.Client().CreatePullRequest(owner, repo, gitea_sdk.CreatePullRequestOption{
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	pr, _, err := client.CreatePullRequest(owner, repo, gitea_sdk.CreatePullRequestOption{
 		Title: title,
 		Body:  body,
 		Head:  head,

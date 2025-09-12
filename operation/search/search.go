@@ -94,7 +94,11 @@ func SearchUsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			PageSize: int(pageSize),
 		},
 	}
-	users, _, err := gitea.Client().SearchUsers(opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	users, _, err := client.SearchUsers(opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search users err: %v", err))
 	}
@@ -128,7 +132,11 @@ func SearchOrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 			PageSize: int(pageSize),
 		},
 	}
-	teams, _, err := gitea.Client().SearchOrgTeams(org, &opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	teams, _, err := client.SearchOrgTeams(org, &opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search organization teams error: %v", err))
 	}
@@ -178,7 +186,11 @@ func SearchReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			PageSize: int(pageSize),
 		},
 	}
-	repos, _, err := gitea.Client().SearchRepos(opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	repos, _, err := client.SearchRepos(opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search repos error: %v", err))
 	}

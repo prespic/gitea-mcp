@@ -137,14 +137,17 @@ func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	}
 
 	var repo *gitea_sdk.Repository
-	var err error
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
 	if organization != "" {
-		repo, _, err = gitea.Client().CreateOrgRepo(organization, opt)
+		repo, _, err = client.CreateOrgRepo(organization, opt)
 		if err != nil {
 			return to.ErrorResult(fmt.Errorf("create organization repository '%s' in '%s' err: %v", name, organization, err))
 		}
 	} else {
-		repo, _, err = gitea.Client().CreateRepo(opt)
+		repo, _, err = client.CreateRepo(opt)
 		if err != nil {
 			return to.ErrorResult(fmt.Errorf("create repository '%s' err: %v", name, err))
 		}
@@ -176,7 +179,11 @@ func ForkRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 		Organization: organizationPtr,
 		Name:         namePtr,
 	}
-	_, _, err := gitea.Client().CreateFork(user, repo, opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, _, err = client.CreateFork(user, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("fork repository error: %v", err))
 	}
@@ -199,7 +206,11 @@ func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			PageSize: int(pageSize),
 		},
 	}
-	repos, _, err := gitea.Client().ListMyRepos(opt)
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	repos, _, err := client.ListMyRepos(opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list my repositories error: %v", err))
 	}
