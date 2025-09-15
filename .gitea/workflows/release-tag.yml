@@ -66,6 +66,8 @@ jobs:
             linux/amd64
             linux/arm64
           push: true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.REPO_VERSION }}
           tags: |
             ${{ env.DOCKER_ORG }}/${{ steps.meta.outputs.REPO_NAME }}-server:${{ steps.meta.outputs.REPO_VERSION }}
             ${{ env.DOCKER_ORG }}/${{ steps.meta.outputs.REPO_NAME }}-server:${{ env.DOCKER_LATEST }}
