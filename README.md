@@ -218,6 +218,12 @@ The Gitea MCP Server supports the following tools:
 |       search_org_teams       | Organization |           Search for teams in an organization            |
 |         search_repos         |  Repository  |                 Search for repositories                  |
 | get_gitea_mcp_server_version |    Server    |         Get the version of the Gitea MCP Server          |
+|       list_wiki_pages        |     Wiki     |          List all wiki pages in a repository            |
+|        get_wiki_page         |     Wiki     |       Get a wiki page content and metadata              |
+|      get_wiki_revisions      |     Wiki     |        Get revisions history of a wiki page             |
+|      create_wiki_page        |     Wiki     |                 Create a new wiki page                   |
+|      update_wiki_page        |     Wiki     |             Update an existing wiki page                 |
+|      delete_wiki_page        |     Wiki     |                  Delete a wiki page                      |
 
 ## 🐛 Debugging
 

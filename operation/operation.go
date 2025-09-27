@@ -14,6 +14,7 @@ import (
 	"gitea.com/gitea/gitea-mcp/operation/search"
 	"gitea.com/gitea/gitea-mcp/operation/user"
 	"gitea.com/gitea/gitea-mcp/operation/version"
+	"gitea.com/gitea/gitea-mcp/operation/wiki"
 	mcpContext "gitea.com/gitea/gitea-mcp/pkg/context"
 	"gitea.com/gitea/gitea-mcp/pkg/flag"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -44,6 +45,9 @@ func RegisterTool(s *server.MCPServer) {
 
 	// Version Tool
 	s.AddTools(version.Tool.Tools()...)
+
+	// Wiki Tool
+	s.AddTools(wiki.Tool.Tools()...)
 
 	s.DeleteTools("")
 }
