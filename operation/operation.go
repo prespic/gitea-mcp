@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"gitea.com/gitea/gitea-mcp/operation/issue"
@@ -100,9 +103,27 @@ func Run() error {
 			server.WithHTTPContextFunc(getContextWithToken),
 		)
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
+
+		// Graceful shutdown setup
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		shutdownDone := make(chan struct{})
+
+		go func() {
+			<-sigCh
+			log.Infof("Shutdown signal received, gracefully stopping HTTP server...")
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				log.Errorf("HTTP server shutdown error: %v", err)
+			}
+			close(shutdownDone)
+		}()
+
 		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
 			return err
 		}
+		<-shutdownDone // Wait for shutdown to finish
 	default:
 		return fmt.Errorf("invalid transport type: %s. Must be 'stdio' or 'http'", flag.Mode)
 	}
@@ -118,4 +139,3 @@ func newMCPServer(version string) *server.MCPServer {
 		server.WithRecovery(),
 	)
 }
-
