@@ -59,12 +59,12 @@ func parseBearerToken(authHeader string) (string, bool) {
 	if len(authHeader) < len(bearerPrefix) || !strings.HasPrefix(authHeader, bearerPrefix) {
 		return "", false
 	}
-	
+
 	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
 	if token == "" {
 		return "", false
 	}
-	
+
 	return token, true
 }
 
@@ -92,15 +92,6 @@ func Run() error {
 		); err != nil {
 			return err
 		}
-	case "sse":
-		sseServer := server.NewSSEServer(
-			mcpServer,
-			server.WithSSEContextFunc(getContextWithToken),
-		)
-		log.Infof("Gitea MCP SSE server listening on :%d", flag.Port)
-		if err := sseServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
-			return err
-		}
 	case "http":
 		httpServer := server.NewStreamableHTTPServer(
 			mcpServer,
@@ -113,7 +104,7 @@ func Run() error {
 			return err
 		}
 	default:
-		return fmt.Errorf("invalid transport type: %s. Must be 'stdio', 'sse' or 'http'", flag.Mode)
+		return fmt.Errorf("invalid transport type: %s. Must be 'stdio' or 'http'", flag.Mode)
 	}
 	return nil
 }
@@ -127,3 +118,4 @@ func newMCPServer(version string) *server.MCPServer {
 		server.WithRecovery(),
 	)
 }
+

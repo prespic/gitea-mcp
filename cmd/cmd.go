@@ -21,13 +21,13 @@ func init() {
 		&flagPkg.Mode,
 		"t",
 		"stdio",
-		"Transport type (stdio, sse or http)",
+		"Transport type (stdio or http)",
 	)
 	flag.StringVar(
 		&flagPkg.Mode,
 		"transport",
 		"stdio",
-		"Transport type (stdio, sse or http)",
+		"Transport type (stdio or http)",
 	)
 	flag.StringVar(
 		&host,
@@ -39,7 +39,7 @@ func init() {
 		&port,
 		"port",
 		8080,
-		"see or http port",
+		"http port",
 	)
 	flag.StringVar(
 		&token,

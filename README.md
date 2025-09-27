@@ -133,21 +133,6 @@ To configure the MCP server for Gitea, add the following to your MCP configurati
 }
 ```
 
-- **sse mode**
-
-```json
-{
-  "mcpServers": {
-    "gitea": {
-      "url": "http://localhost:8080/sse",
-      "headers": {
-        "Authorization": "Bearer <your personal access token>"
-      }
-    }
-  }
-}
-```
-
 - **http mode**
 
 ```json
@@ -227,10 +212,10 @@ The Gitea MCP Server supports the following tools:
 
 ## 🐛 Debugging
 
-To enable debug mode, add the `-d` flag when running the Gitea MCP Server with sse mode:
+To enable debug mode, add the `-d` flag when running the Gitea MCP Server with http mode:
 
 ```sh
-./gitea-mcp -t sse [--port 8080] --token <your personal access token> -d
+./gitea-mcp -t http [--port 8080] --token <your personal access token> -d
 ```
 
 ## 🛠 Troubleshooting

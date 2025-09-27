@@ -133,21 +133,6 @@ cp gitea-mcp /usr/local/bin/
 }
 ```
 
-- **sse 模式**
-
-```json
-{
-  "mcpServers": {
-    "gitea": {
-      "url": "http://localhost:8080/sse",
-      "headers": {
-        "Authorization": "Bearer <your personal access token>"
-      }
-    }
-  }
-}
-```
-
 - **http 模式**
 
 ```json
@@ -221,10 +206,10 @@ Gitea MCP 服务器支持以下工具：
 
 ## 🐛 调试
 
-要启用调试模式，请在使用 sse 模式运行 Gitea MCP 服务器时添加 `-d` 标志：
+要启用调试模式，请在使用 http 模式运行 Gitea MCP 服务器时添加 `-d` 标志：
 
 ```sh
-./gitea-mcp -t sse [--port 8080] --token <your personal access token> -d
+./gitea-mcp -t http [--port 8080] --token <your personal access token> -d
 ```
 
 ## 🛠 疑难排解
