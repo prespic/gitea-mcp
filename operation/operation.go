@@ -52,18 +52,34 @@ func RegisterTool(s *server.MCPServer) {
 	s.DeleteTools("")
 }
 
+// parseBearerToken extracts the Bearer token from an Authorization header.
+// Returns the token and true if valid, empty string and false otherwise.
+func parseBearerToken(authHeader string) (string, bool) {
+	const bearerPrefix = "Bearer "
+	if len(authHeader) < len(bearerPrefix) || !strings.HasPrefix(authHeader, bearerPrefix) {
+		return "", false
+	}
+	
+	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
+	if token == "" {
+		return "", false
+	}
+	
+	return token, true
+}
+
 func getContextWithToken(ctx context.Context, r *http.Request) context.Context {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return ctx
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
+	token, ok := parseBearerToken(authHeader)
+	if !ok {
 		return ctx
 	}
 
-	return context.WithValue(ctx, mcpContext.TokenContextKey, parts[1])
+	return context.WithValue(ctx, mcpContext.TokenContextKey, token)
 }
 
 func Run() error {
