@@ -201,6 +201,10 @@ The Gitea MCP Server supports the following tools:
 |     create_pull_request      | Pull Request |                Create a new pull request                 |
 |         search_users         |     User     |                     Search for users                     |
 |       search_org_teams       | Organization |           Search for teams in an organization            |
+|        list_org_labels       | Organization |            List labels defined at organization level     |
+|        create_org_label      | Organization |                  Create a label in an organization       |
+|         edit_org_label       | Organization |                  Edit a label in an organization         |
+|       delete_org_label       | Organization |                 Delete a label in an organization        |
 |         search_repos         |  Repository  |                 Search for repositories                  |
 | get_gitea_mcp_server_version |    Server    |         Get the version of the Gitea MCP Server          |
 |       list_wiki_pages        |     Wiki     |          List all wiki pages in a repository            |
