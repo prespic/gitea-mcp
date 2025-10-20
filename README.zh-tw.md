@@ -14,9 +14,9 @@
   - [什麼是 MCP？](#什麼是-mcp)
   - [🚧 安裝](#-安裝)
     - [在 VS Code 中使用](#在-vs-code-中使用)
-    - [📥 下載官方 Gitea MCP 二進位版本](#-下載官方-gitea-mcp-二進位版本)
-    - [🔧 從源代碼構建](#-從源代碼構建)
-    - [📁 添加到 PATH](#-添加到-path)
+    - [📥 下載官方二進位版本](#-下載官方二進位版本)
+    - [🔧 從原始碼建置](#-從原始碼建置)
+    - [📁 加入 PATH](#-加入-path)
   - [🚀 使用](#-使用)
   - [✅ 可用工具](#-可用工具)
   - [🐛 調試](#-調試)
@@ -24,23 +24,23 @@
 
 ## 什麼是 Gitea？
 
-Gitea 是一個由社群管理的輕量級代碼託管解決方案，使用 Go 語言編寫。它以 MIT 許可證發布。Gitea 提供 Git 託管，包括倉庫查看器、問題追蹤、拉取請求等功能。
+Gitea 是一個由社群管理的輕量級程式碼託管解決方案，使用 Go 語言編寫，採用 MIT 授權。Gitea 提供 Git 託管，包括倉庫瀏覽、議題追蹤、拉取請求等功能。
 
 ## 什麼是 MCP？
 
-Model Context Protocol (MCP) 是一種協議，允許通過聊天界面整合各種工具和系統。它能夠無縫執行命令和管理倉庫、用戶和其他資源。
+Model Context Protocol (MCP) 是一種協議，允許透過聊天介面整合各種工具與系統。它能夠無縫執行命令並管理倉庫、使用者及其他資源。
 
 ## 🚧 安裝
 
 ### 在 VS Code 中使用
 
-要快速安裝，請使用本 README 頂部的單擊安裝按鈕之一。
+欲快速安裝，請使用本 README 頂部的安裝按鈕。
 
-要手動安裝，請將以下 JSON 塊添加到 VS Code 的用戶設置 (JSON) 文件中。您可以通過按 `Ctrl + Shift + P` 並輸入 `Preferences: Open User Settings (JSON)` 來完成此操作。
+如需手動安裝，請將下列 JSON 區塊加入 VS Code 的使用者設定 (JSON) 檔案。可按 `Ctrl + Shift + P` 並輸入 `Preferences: Open User Settings (JSON)`。
 
-或者，您可以將其添加到工作區中的 `.vscode/mcp.json` 文件中。這將允許您與他人共享配置。
+也可加入至工作區的 `.vscode/mcp.json` 檔案，方便與他人共享設定。
 
-> 請注意，`.vscode/mcp.json` 文件中不需要 `mcp` 鍵。
+> `.vscode/mcp.json` 檔案不需 `mcp` 鍵。
 
 ```json
 {
@@ -49,7 +49,7 @@ Model Context Protocol (MCP) 是一種協議，允許通過聊天界面整合各
       {
         "type": "promptString",
         "id": "gitea_token",
-        "description": "Gitea 個人訪問令牌",
+        "description": "Gitea 個人存取令牌",
         "password": true
       }
     ],
@@ -73,32 +73,32 @@ Model Context Protocol (MCP) 是一種協議，允許通過聊天界面整合各
 }
 ```
 
-### 📥 下載官方 Gitea MCP 二進位版本
+### 📥 下載官方二進位版本
 
-您可以從[官方 Gitea MCP 二進位版本](https://gitea.com/gitea/gitea-mcp/releases)下載官方版本。
+可至 [官方 Gitea MCP 二進位版本](https://gitea.com/gitea/gitea-mcp/releases) 下載。
 
-### 🔧 從源代碼構建
+### 🔧 從原始碼建置
 
-您可以使用 Git 克隆倉庫來下載源代碼：
+可用 Git 下載原始碼：
 
 ```bash
 git clone https://gitea.com/gitea/gitea-mcp.git
 ```
 
-在構建之前，請確保您已安裝以下內容：
+建置前請先安裝：
 
 - make
-- Golang (建議使用 Go 1.24 或更高版本)
+- Golang（建議 Go 1.24 以上）
 
-然後運行：
+然後執行：
 
 ```bash
 make install
 ```
 
-### 📁 添加到 PATH
+### 📁 加入 PATH
 
-安裝後，將二進制文件 gitea-mcp 複製到系統 PATH 中包含的目錄。例如：
+安裝後，將 gitea-mcp 執行檔複製到系統 PATH 目錄，例如：
 
 ```bash
 cp gitea-mcp /usr/local/bin/
@@ -106,8 +106,8 @@ cp gitea-mcp /usr/local/bin/
 
 ## 🚀 使用
 
-此示例適用於 Cursor，您也可以在 VSCode 中使用插件。
-要配置 Gitea 的 MCP 伺服器，請將以下內容添加到您的 MCP 配置文件中：
+此範例適用於 Cursor，也可在 VSCode 使用插件。  
+欲設定 Gitea MCP 伺服器，請將下列內容加入 MCP 設定檔：
 
 - **stdio 模式**
 
@@ -151,10 +151,10 @@ cp gitea-mcp /usr/local/bin/
 **預設日誌路徑**: `$HOME/.gitea-mcp/gitea-mcp.log`
 
 > [!注意]
-> 您可以通過命令列參數或環境變數提供您的 Gitea 主機和訪問令牌。
-> 命令列參數具有最高優先權
+> 可用命令列參數或環境變數提供 Gitea 主機與存取令牌。  
+> 命令列參數優先。
 
-一切設置完成後，請嘗試在您的 MCP 兼容聊天框中輸入以下內容：
+一切設定完成後，可在 MCP 聊天框輸入：
 
 ```text
 列出我所有的倉庫
@@ -162,61 +162,61 @@ cp gitea-mcp /usr/local/bin/
 
 ## ✅ 可用工具
 
-Gitea MCP 伺服器支持以下工具：
+Gitea MCP 伺服器支援以下工具：
 
 |             工具             |   範圍   |             描述             |
 | :--------------------------: | :------: | :--------------------------: |
-|       get_my_user_info       |   用戶   |     獲取已認證用戶的信息     |
+|       get_my_user_info       |   用戶   |      取得已認證用戶資訊      |
 |        get_user_orgs         |   用戶   |    取得已認證用戶所屬組織    |
-|         create_repo          |   倉庫   |        創建一個新倉庫        |
-|          fork_repo           |   倉庫   |         復刻一個倉庫         |
-|        list_my_repos         |   倉庫   | 列出已認證用戶擁有的所有倉庫 |
-|        create_branch         |   分支   |        創建一個新分支        |
-|        delete_branch         |   分支   |         刪除一個分支         |
-|        list_branches         |   分支   |     列出倉庫中的所有分支     |
-|        create_release        | 版本發布 |      創建一個新版本發布      |
-|        delete_release        | 版本發布 |       刪除一個版本發布       |
-|         get_release          | 版本發布 |       獲取一個版本發布       |
-|      get_latest_release      | 版本發布 |      獲取最新的版本發布      |
+|         create_repo          |   倉庫   |          創建新倉庫          |
+|          fork_repo           |   倉庫   |           復刻倉庫           |
+|        list_my_repos         |   倉庫   |       列出用戶所有倉庫       |
+|        create_branch         |   分支   |          創建新分支          |
+|        delete_branch         |   分支   |           刪除分支           |
+|        list_branches         |   分支   |         列出所有分支         |
+|        create_release        | 版本發布 |        創建新版本發布        |
+|        delete_release        | 版本發布 |         刪除版本發布         |
+|         get_release          | 版本發布 |         取得版本發布         |
+|      get_latest_release      | 版本發布 |       取得最新版本發布       |
 |        list_releases         | 版本發布 |       列出所有版本發布       |
-|          create_tag          |   標籤   |        創建一個新標籤        |
-|          delete_tag          |   標籤   |         刪除一個標籤         |
-|           get_tag            |   標籤   |         獲取一個標籤         |
+|          create_tag          |   標籤   |          創建新標籤          |
+|          delete_tag          |   標籤   |           刪除標籤           |
+|           get_tag            |   標籤   |           取得標籤           |
 |          list_tags           |   標籤   |         列出所有標籤         |
-|      list_repo_commits       |   提交   |     列出倉庫中的所有提交     |
-|       get_file_content       |   文件   |    獲取文件的內容和元數據    |
-|       get_dir_content        |   文件   |      獲取目錄的內容列表      |
-|         create_file          |   文件   |        創建一個新文件        |
+|      list_repo_commits       |   提交   |         列出所有提交         |
+|       get_file_content       |   文件   |    取得文件內容與中繼資料    |
+|       get_dir_content        |   文件   |       取得目錄內容列表       |
+|         create_file          |   文件   |          創建新文件          |
 |         update_file          |   文件   |         更新現有文件         |
-|         delete_file          |   文件   |         刪除一個文件         |
-|      get_issue_by_index      |   問題   |       根據索引獲取問題       |
-|       list_repo_issues       |   問題   |     列出倉庫中的所有問題     |
-|         create_issue         |   問題   |        創建一個新問題        |
+|         delete_file          |   文件   |           刪除文件           |
+|      get_issue_by_index      |   問題   |        依索引取得問題        |
+|       list_repo_issues       |   問題   |         列出所有問題         |
+|         create_issue         |   問題   |          創建新問題          |
 |     create_issue_comment     |   問題   |       在問題上創建評論       |
-|          edit_issue          |   問題   |         編輯一個問題         |
-|      edit_issue_comment      |   問題   |       在問題上編輯評論       |
-| get_issue_comments_by_index  |   問題   |    根據索引獲取問題的評論    |
-|  get_pull_request_by_index   | 拉取請求 |     根據索引獲取拉取請求     |
-|   list_repo_pull_requests    | 拉取請求 |   列出倉庫中的所有拉取請求   |
-|     create_pull_request      | 拉取請求 |      創建一個新拉取請求      |
-|         search_users         |   用戶   |           搜索用戶           |
-|       search_org_teams       |   組織   |       搜索組織中的團隊       |
-|       list_org_labels        |   組織   |    列出組織層級定義的標籤    |
-|       create_org_label       |   組織   |     在組織中創建一個標籤     |
-|        edit_org_label        |   組織   |     編輯組織中的一個標籤     |
-|       delete_org_label       |   組織   |     刪除組織中的一個標籤     |
-|         search_repos         |   倉庫   |           搜索倉庫           |
-| get_gitea_mcp_server_version |  伺服器  | 獲取 Gitea MCP 伺服器的版本  |
-|       list_wiki_pages        |   Wiki   |  列出倉庫中的所有 Wiki 頁面  |
-|        get_wiki_page         |   Wiki   |  獲取 Wiki 頁面內容和元數據  |
-|      get_wiki_revisions      |   Wiki   |   獲取 Wiki 頁面的修訂歷史   |
-|       create_wiki_page       |   Wiki   |    創建一個新的 Wiki 頁面    |
-|       update_wiki_page       |   Wiki   |     更新現有的 Wiki 頁面     |
-|       delete_wiki_page       |   Wiki   |      刪除一個 Wiki 頁面      |
+|          edit_issue          |   問題   |           編輯問題           |
+|      edit_issue_comment      |   問題   |         編輯問題評論         |
+| get_issue_comments_by_index  |   問題   |      依索引取得問題評論      |
+|  get_pull_request_by_index   | 拉取請求 |      依索引取得拉取請求      |
+|   list_repo_pull_requests    | 拉取請求 |       列出所有拉取請求       |
+|     create_pull_request      | 拉取請求 |        創建新拉取請求        |
+|         search_users         |   用戶   |           搜尋用戶           |
+|       search_org_teams       |   組織   |         搜尋組織團隊         |
+|       list_org_labels        |   組織   |         列出組織標籤         |
+|       create_org_label       |   組織   |         創建組織標籤         |
+|        edit_org_label        |   組織   |         編輯組織標籤         |
+|       delete_org_label       |   組織   |         刪除組織標籤         |
+|         search_repos         |   倉庫   |           搜尋倉庫           |
+| get_gitea_mcp_server_version |  伺服器  |  取得 Gitea MCP 伺服器版本   |
+|       list_wiki_pages        |   Wiki   |      列出所有 Wiki 頁面      |
+|        get_wiki_page         |   Wiki   | 取得 Wiki 頁面內容與中繼資料 |
+|      get_wiki_revisions      |   Wiki   |      取得 Wiki 修訂歷史      |
+|       create_wiki_page       |   Wiki   |       創建新 Wiki 頁面       |
+|       update_wiki_page       |   Wiki   |      更新現有 Wiki 頁面      |
+|       delete_wiki_page       |   Wiki   |        刪除 Wiki 頁面        |
 
 ## 🐛 調試
 
-要啟用調試模式，請在使用 http 模式運行 Gitea MCP 伺服器時添加 `-d` 旗標：
+啟用調試模式時，請在 http 模式執行 Gitea MCP 伺服器時加上 `-d` 旗標：
 
 ```sh
 ./gitea-mcp -t http [--port 8080] --token <your personal access token> -d
@@ -224,11 +224,11 @@ Gitea MCP 伺服器支持以下工具：
 
 ## 🛠 疑難排解
 
-如果您遇到任何問題，以下是一些常見的疑難排解步驟：
+如遇問題，可參考以下步驟：
 
-1. **檢查您的 PATH**: 確保 `gitea-mcp` 二進制文件位於系統 PATH 中包含的目錄中。
-2. **驗證依賴項**: 確保您已安裝所有所需的依賴項，例如 `make` 和 `Golang`。
-3. **檢查配置**: 仔細檢查您的 MCP 配置文件是否有任何錯誤或遺漏的信息。
-4. **查看日誌**: 檢查日誌中是否有任何錯誤消息或警告，可以提供有關問題的更多信息。
+1. **檢查 PATH**：確保 `gitea-mcp` 執行檔已在系統 PATH 目錄中。
+2. **驗證依賴**：確認已安裝 `make` 與 `Golang` 等必要依賴。
+3. **檢查設定**：仔細檢查 MCP 設定檔是否有錯誤或遺漏。
+4. **查看日誌**：檢查日誌訊息或警告以獲取更多資訊。
 
-享受通過聊天探索和管理您的 Gitea 倉庫的樂趣！
+享受透過聊天探索與管理您的 Gitea 倉庫！
