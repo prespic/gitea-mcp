@@ -185,7 +185,7 @@ Gitea MCP 服务器支持以下工具：
 |          list_tags           |   标签   |         列出所有标签         |
 |      list_repo_commits       |   提交   |     列出仓库中的所有提交     |
 |       get_file_content       |   文件   |    获取文件的内容和元数据    |
-|        get_dir_content       |   文件   |      获取目录的内容列表      |
+|       get_dir_content        |   文件   |      获取目录的内容列表      |
 |         create_file          |   文件   |        创建一个新文件        |
 |         update_file          |   文件   |         更新现有文件         |
 |         delete_file          |   文件   |         删除一个文件         |
@@ -194,15 +194,25 @@ Gitea MCP 服务器支持以下工具：
 |         create_issue         |   问题   |        创建一个新问题        |
 |     create_issue_comment     |   问题   |       在问题上创建评论       |
 |          edit_issue          |   问题   |         编辑一个问题         |
-|      edit_issue_comment      |   问题   |      在问题上编辑评论         |
-| get_issue_comments_by_index  |   问题   |     根据索引获取问题的评论     |
+|      edit_issue_comment      |   问题   |       在问题上编辑评论       |
+| get_issue_comments_by_index  |   问题   |    根据索引获取问题的评论    |
 |  get_pull_request_by_index   | 拉取请求 |     根据索引获取拉取请求     |
 |   list_repo_pull_requests    | 拉取请求 |   列出仓库中的所有拉取请求   |
 |     create_pull_request      | 拉取请求 |      创建一个新拉取请求      |
 |         search_users         |   用户   |           搜索用户           |
 |       search_org_teams       |   组织   |       搜索组织中的团队       |
+|       list_org_labels        |   组织   |    列出组织层级定义的标签    |
+|       create_org_label       |   组织   |     在组织中创建一个标签     |
+|        edit_org_label        |   组织   |     编辑组织中的一个标签     |
+|       delete_org_label       |   组织   |     删除组织中的一个标签     |
 |         search_repos         |   仓库   |           搜索仓库           |
-| get_gitea_mcp_server_version |   服务器    |        获取 Gitea MCP 服务器的版本         |
+| get_gitea_mcp_server_version |  服务器  | 获取 Gitea MCP 服务器的版本  |
+|       list_wiki_pages        |   Wiki   |  列出仓库中的所有 Wiki 页面  |
+|        get_wiki_page         |   Wiki   |  获取 Wiki 页面内容和元数据  |
+|      get_wiki_revisions      |   Wiki   |   获取 Wiki 页面的修订历史   |
+|       create_wiki_page       |   Wiki   |    创建一个新的 Wiki 页面    |
+|       update_wiki_page       |   Wiki   |     更新现有的 Wiki 页面     |
+|       delete_wiki_page       |   Wiki   |      删除一个 Wiki 页面      |
 
 ## 🐛 调试
 
