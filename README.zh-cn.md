@@ -199,6 +199,7 @@ Gitea MCP 服务器支持以下工具：
 |  get_pull_request_by_index   | 拉取请求 |     按索引获取拉取请求     |
 |   list_repo_pull_requests    | 拉取请求 |      列出所有拉取请求      |
 |     create_pull_request      | 拉取请求 |       创建新拉取请求       |
+| create_pull_request_reviewer | 拉取请求 |     为拉取请求添加审查者   |
 |         search_users         |   用户   |          搜索用户          |
 |       search_org_teams       |   组织   |        搜索组织团队        |
 |       list_org_labels        |   组织   |        列出组织标签        |

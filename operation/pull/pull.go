@@ -17,9 +17,10 @@ import (
 var Tool = tool.New()
 
 const (
-	GetPullRequestByIndexToolName = "get_pull_request_by_index"
-	ListRepoPullRequestsToolName  = "list_repo_pull_requests"
-	CreatePullRequestToolName     = "create_pull_request"
+	GetPullRequestByIndexToolName     = "get_pull_request_by_index"
+	ListRepoPullRequestsToolName      = "list_repo_pull_requests"
+	CreatePullRequestToolName         = "create_pull_request"
+	CreatePullRequestReviewerToolName = "create_pull_request_reviewer"
 )
 
 var (
@@ -53,6 +54,16 @@ var (
 		mcp.WithString("head", mcp.Required(), mcp.Description("pull request head")),
 		mcp.WithString("base", mcp.Required(), mcp.Description("pull request base")),
 	)
+
+	CreatePullRequestReviewerTool = mcp.NewTool(
+		CreatePullRequestReviewerToolName,
+		mcp.WithDescription("create pull request reviewer"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
+		mcp.WithArray("reviewers", mcp.Description("list of reviewer usernames"), mcp.Items(map[string]interface{}{"type": "string"})),
+		mcp.WithArray("team_reviewers", mcp.Description("list of team reviewer names"), mcp.Items(map[string]interface{}{"type": "string"})),
+	)
 )
 
 func init() {
@@ -67,6 +78,10 @@ func init() {
 	Tool.RegisterWrite(server.ServerTool{
 		Tool:    CreatePullRequestTool,
 		Handler: CreatePullRequestFn,
+	})
+	Tool.RegisterWrite(server.ServerTool{
+		Tool:    CreatePullRequestReviewerTool,
+		Handler: CreatePullRequestReviewerFn,
 	})
 }
 
@@ -182,4 +197,66 @@ func CreatePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	}
 
 	return to.TextResult(pr)
+}
+
+func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called CreatePullRequestReviewerFn")
+	owner, ok := req.GetArguments()["owner"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("owner is required"))
+	}
+	repo, ok := req.GetArguments()["repo"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("repo is required"))
+	}
+	index, ok := req.GetArguments()["index"].(float64)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("index is required"))
+	}
+
+	var reviewers []string
+	if reviewersArg, exists := req.GetArguments()["reviewers"]; exists {
+		if reviewersSlice, ok := reviewersArg.([]interface{}); ok {
+			for _, reviewer := range reviewersSlice {
+				if reviewerStr, ok := reviewer.(string); ok {
+					reviewers = append(reviewers, reviewerStr)
+				}
+			}
+		}
+	}
+
+	var teamReviewers []string
+	if teamReviewersArg, exists := req.GetArguments()["team_reviewers"]; exists {
+		if teamReviewersSlice, ok := teamReviewersArg.([]interface{}); ok {
+			for _, teamReviewer := range teamReviewersSlice {
+				if teamReviewerStr, ok := teamReviewer.(string); ok {
+					teamReviewers = append(teamReviewers, teamReviewerStr)
+				}
+			}
+		}
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+
+	_, err = client.CreateReviewRequests(owner, repo, int64(index), gitea_sdk.PullReviewRequestOptions{
+		Reviewers:     reviewers,
+		TeamReviewers: teamReviewers,
+	})
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("create review requests for %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+	}
+
+	// Return a success message instead of the Response object which contains non-serializable functions
+	successMsg := map[string]interface{}{
+		"message":        "Successfully created review requests",
+		"reviewers":      reviewers,
+		"team_reviewers": teamReviewers,
+		"pr_index":       int64(index),
+		"repository":     fmt.Sprintf("%s/%s", owner, repo),
+	}
+
+	return to.TextResult(successMsg)
 }

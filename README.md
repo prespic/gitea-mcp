@@ -199,6 +199,7 @@ The Gitea MCP Server supports the following tools:
 |  get_pull_request_by_index   | Pull Request |             Get a pull request by its index              |
 |   list_repo_pull_requests    | Pull Request |          List all pull requests in a repository          |
 |     create_pull_request      | Pull Request |                Create a new pull request                 |
+| create_pull_request_reviewer | Pull Request |           Add reviewers to a pull request                |
 |         search_users         |     User     |                     Search for users                     |
 |       search_org_teams       | Organization |           Search for teams in an organization            |
 |        list_org_labels       | Organization |            List labels defined at organization level     |
