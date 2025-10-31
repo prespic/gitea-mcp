@@ -3,8 +3,8 @@ module gitea.com/gitea/gitea-mcp
 go 1.24.0
 
 require (
-	code.gitea.io/sdk/gitea v0.22.1-0.20251016220613-060554f46291
-	github.com/mark3labs/mcp-go v0.40.0
+	code.gitea.io/sdk/gitea v0.22.1
+	github.com/mark3labs/mcp-go v0.42.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -23,7 +23,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
