@@ -283,10 +283,17 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	if ok {
 		opt.Body = ptr.To(body)
 	}
-	assignees, ok := req.GetArguments()["assignees"].([]string)
-	if ok {
-		opt.Assignees = assignees
+	var assignees []string
+	if assigneesArg, exists := req.GetArguments()["assignees"]; exists {
+		if assigneesSlice, ok := assigneesArg.([]interface{}); ok {
+			for _, assignee := range assigneesSlice {
+				if assigneeStr, ok := assignee.(string); ok {
+					assignees = append(assignees, assigneeStr)
+				}
+			}
+		}
 	}
+	opt.Assignees = assignees
 	milestone, ok := req.GetArguments()["milestone"].(float64)
 	if ok {
 		opt.Milestone = ptr.To(int64(milestone))
