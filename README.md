@@ -164,83 +164,83 @@ list all my repositories
 
 The Gitea MCP Server supports the following tools:
 
-|             Tool             |    Scope     |                       Description                        |
-| :--------------------------: | :----------: | :------------------------------------------------------: |
-|       get_my_user_info       |     User     |      Get the information of the authenticated user       |
-|        get_user_orgs         |     User     | Get organizations associated with the authenticated user |
-|         create_repo          |  Repository  |                 Create a new repository                  |
-|          fork_repo           |  Repository  |                    Fork a repository                     |
-|        list_my_repos         |  Repository  |  List all repositories owned by the authenticated user   |
-|        create_branch         |    Branch    |                   Create a new branch                    |
-|        delete_branch         |    Branch    |                     Delete a branch                      |
-|        list_branches         |    Branch    |            List all branches in a repository             |
-|        create_release        |   Release    |           Create a new release in a repository           |
-|        delete_release        |   Release    |            Delete a release from a repository            |
-|         get_release          |   Release    |                      Get a release                       |
-|      get_latest_release      |   Release    |          Get the latest release in a repository          |
-|        list_releases         |   Release    |            List all releases in a repository             |
-|          create_tag          |     Tag      |                     Create a new tag                     |
-|          delete_tag          |     Tag      |                       Delete a tag                       |
-|           get_tag            |     Tag      |                        Get a tag                         |
-|          list_tags           |     Tag      |              List all tags in a repository               |
-|      list_repo_commits       |    Commit    |             List all commits in a repository             |
-|       get_file_content       |     File     |          Get the content and metadata of a file          |
-|        get_dir_content       |     File     |           Get a list of entries in a directory           |
-|         create_file          |     File     |                    Create a new file                     |
-|         update_file          |     File     |                 Update an existing file                  |
-|         delete_file          |     File     |                      Delete a file                       |
-|      get_issue_by_index      |    Issue     |                Get an issue by its index                 |
-|       list_repo_issues       |    Issue     |             List all issues in a repository              |
-|         create_issue         |    Issue     |                    Create a new issue                    |
-|     create_issue_comment     |    Issue     |               Create a comment on an issue               |
-|          edit_issue          |    Issue     |                       Edit a issue                       |
-|      edit_issue_comment      |    Issue     |                Edit a comment on an issue                |
-| get_issue_comments_by_index  |    Issue     |          Get comments of an issue by its index           |
-|  get_pull_request_by_index   | Pull Request |             Get a pull request by its index              |
-|   list_repo_pull_requests    | Pull Request |          List all pull requests in a repository          |
-|     create_pull_request      | Pull Request |                Create a new pull request                 |
-| create_pull_request_reviewer | Pull Request |           Add reviewers to a pull request                |
-|         search_users         |     User     |                     Search for users                     |
-|       search_org_teams       | Organization |           Search for teams in an organization            |
-|        list_org_labels       | Organization |            List labels defined at organization level     |
-|        create_org_label      | Organization |                  Create a label in an organization       |
-|         edit_org_label       | Organization |                  Edit a label in an organization         |
-|       delete_org_label       | Organization |                 Delete a label in an organization        |
-|         search_repos         |  Repository  |                 Search for repositories                  |
-|   list_repo_action_secrets   |   Actions    | List repository Actions secrets (metadata only)          |
-|  upsert_repo_action_secret   |   Actions    | Create/update (upsert) a repository Actions secret       |
-|  delete_repo_action_secret   |   Actions    | Delete a repository Actions secret                       |
-|    list_org_action_secrets   |   Actions    | List organization Actions secrets (metadata only)        |
-|   upsert_org_action_secret   |   Actions    | Create/update (upsert) an organization Actions secret    |
-|   delete_org_action_secret   |   Actions    | Delete an organization Actions secret                    |
-|  list_repo_action_variables  |   Actions    | List repository Actions variables                        |
-|   get_repo_action_variable   |   Actions    | Get a repository Actions variable                        |
-| create_repo_action_variable  |   Actions    | Create a repository Actions variable                     |
-| update_repo_action_variable  |   Actions    | Update a repository Actions variable                     |
-| delete_repo_action_variable  |   Actions    | Delete a repository Actions variable                     |
-|  list_org_action_variables   |   Actions    | List organization Actions variables                      |
-|    get_org_action_variable   |   Actions    | Get an organization Actions variable                     |
-|  create_org_action_variable  |   Actions    | Create an organization Actions variable                  |
-|  update_org_action_variable  |   Actions    | Update an organization Actions variable                  |
-|  delete_org_action_variable  |   Actions    | Delete an organization Actions variable                  |
-|  list_repo_action_workflows  |   Actions    | List repository Actions workflows                        |
-|   get_repo_action_workflow   |   Actions    | Get a repository Actions workflow                        |
-| dispatch_repo_action_workflow|   Actions    | Trigger (dispatch) a repository Actions workflow         |
-|    list_repo_action_runs     |   Actions    | List repository Actions runs                             |
-|     get_repo_action_run      |   Actions    | Get a repository Actions run                             |
-|   cancel_repo_action_run     |   Actions    | Cancel a repository Actions run                          |
-|    rerun_repo_action_run     |   Actions    | Rerun a repository Actions run                           |
-|    list_repo_action_jobs     |   Actions    | List repository Actions jobs                             |
-|  list_repo_action_run_jobs   |   Actions    | List Actions jobs for a run                              |
-| get_repo_action_job_log_preview | Actions   | Get a job log preview (tail/limited)                     |
-| download_repo_action_job_log |   Actions    | Download a job log to a file                             |
-| get_gitea_mcp_server_version |    Server    |         Get the version of the Gitea MCP Server          |
-|       list_wiki_pages        |     Wiki     |          List all wiki pages in a repository            |
-|        get_wiki_page         |     Wiki     |       Get a wiki page content and metadata              |
-|      get_wiki_revisions      |     Wiki     |        Get revisions history of a wiki page             |
-|      create_wiki_page        |     Wiki     |                 Create a new wiki page                   |
-|      update_wiki_page        |     Wiki     |             Update an existing wiki page                 |
-|      delete_wiki_page        |     Wiki     |                  Delete a wiki page                      |
+|              Tool               |    Scope     |                       Description                        |
+| :-----------------------------: | :----------: | :------------------------------------------------------: |
+|        get_my_user_info         |     User     |      Get the information of the authenticated user       |
+|          get_user_orgs          |     User     | Get organizations associated with the authenticated user |
+|           create_repo           |  Repository  |                 Create a new repository                  |
+|            fork_repo            |  Repository  |                    Fork a repository                     |
+|          list_my_repos          |  Repository  |  List all repositories owned by the authenticated user   |
+|          create_branch          |    Branch    |                   Create a new branch                    |
+|          delete_branch          |    Branch    |                     Delete a branch                      |
+|          list_branches          |    Branch    |            List all branches in a repository             |
+|         create_release          |   Release    |           Create a new release in a repository           |
+|         delete_release          |   Release    |            Delete a release from a repository            |
+|           get_release           |   Release    |                      Get a release                       |
+|       get_latest_release        |   Release    |          Get the latest release in a repository          |
+|          list_releases          |   Release    |            List all releases in a repository             |
+|           create_tag            |     Tag      |                     Create a new tag                     |
+|           delete_tag            |     Tag      |                       Delete a tag                       |
+|             get_tag             |     Tag      |                        Get a tag                         |
+|            list_tags            |     Tag      |              List all tags in a repository               |
+|        list_repo_commits        |    Commit    |             List all commits in a repository             |
+|        get_file_content         |     File     |          Get the content and metadata of a file          |
+|         get_dir_content         |     File     |           Get a list of entries in a directory           |
+|           create_file           |     File     |                    Create a new file                     |
+|           update_file           |     File     |                 Update an existing file                  |
+|           delete_file           |     File     |                      Delete a file                       |
+|       get_issue_by_index        |    Issue     |                Get an issue by its index                 |
+|        list_repo_issues         |    Issue     |             List all issues in a repository              |
+|          create_issue           |    Issue     |                    Create a new issue                    |
+|      create_issue_comment       |    Issue     |               Create a comment on an issue               |
+|           edit_issue            |    Issue     |                       Edit a issue                       |
+|       edit_issue_comment        |    Issue     |                Edit a comment on an issue                |
+|   get_issue_comments_by_index   |    Issue     |          Get comments of an issue by its index           |
+|    get_pull_request_by_index    | Pull Request |             Get a pull request by its index              |
+|     list_repo_pull_requests     | Pull Request |          List all pull requests in a repository          |
+|       create_pull_request       | Pull Request |                Create a new pull request                 |
+|  create_pull_request_reviewer   | Pull Request |             Add reviewers to a pull request              |
+|          search_users           |     User     |                     Search for users                     |
+|        search_org_teams         | Organization |           Search for teams in an organization            |
+|         list_org_labels         | Organization |        List labels defined at organization level         |
+|        create_org_label         | Organization |            Create a label in an organization             |
+|         edit_org_label          | Organization |             Edit a label in an organization              |
+|        delete_org_label         | Organization |            Delete a label in an organization             |
+|          search_repos           |  Repository  |                 Search for repositories                  |
+|    list_repo_action_secrets     |   Actions    |     List repository Actions secrets (metadata only)      |
+|    upsert_repo_action_secret    |   Actions    |    Create/update (upsert) a repository Actions secret    |
+|    delete_repo_action_secret    |   Actions    |            Delete a repository Actions secret            |
+|     list_org_action_secrets     |   Actions    |    List organization Actions secrets (metadata only)     |
+|    upsert_org_action_secret     |   Actions    |  Create/update (upsert) an organization Actions secret   |
+|    delete_org_action_secret     |   Actions    |          Delete an organization Actions secret           |
+|   list_repo_action_variables    |   Actions    |            List repository Actions variables             |
+|    get_repo_action_variable     |   Actions    |            Get a repository Actions variable             |
+|   create_repo_action_variable   |   Actions    |           Create a repository Actions variable           |
+|   update_repo_action_variable   |   Actions    |           Update a repository Actions variable           |
+|   delete_repo_action_variable   |   Actions    |           Delete a repository Actions variable           |
+|    list_org_action_variables    |   Actions    |           List organization Actions variables            |
+|     get_org_action_variable     |   Actions    |           Get an organization Actions variable           |
+|   create_org_action_variable    |   Actions    |         Create an organization Actions variable          |
+|   update_org_action_variable    |   Actions    |         Update an organization Actions variable          |
+|   delete_org_action_variable    |   Actions    |         Delete an organization Actions variable          |
+|   list_repo_action_workflows    |   Actions    |            List repository Actions workflows             |
+|    get_repo_action_workflow     |   Actions    |            Get a repository Actions workflow             |
+|  dispatch_repo_action_workflow  |   Actions    |     Trigger (dispatch) a repository Actions workflow     |
+|      list_repo_action_runs      |   Actions    |               List repository Actions runs               |
+|       get_repo_action_run       |   Actions    |               Get a repository Actions run               |
+|     cancel_repo_action_run      |   Actions    |             Cancel a repository Actions run              |
+|      rerun_repo_action_run      |   Actions    |              Rerun a repository Actions run              |
+|      list_repo_action_jobs      |   Actions    |               List repository Actions jobs               |
+|    list_repo_action_run_jobs    |   Actions    |               List Actions jobs for a run                |
+| get_repo_action_job_log_preview |   Actions    |           Get a job log preview (tail/limited)           |
+|  download_repo_action_job_log   |   Actions    |               Download a job log to a file               |
+|  get_gitea_mcp_server_version   |    Server    |         Get the version of the Gitea MCP Server          |
+|         list_wiki_pages         |     Wiki     |           List all wiki pages in a repository            |
+|          get_wiki_page          |     Wiki     |           Get a wiki page content and metadata           |
+|       get_wiki_revisions        |     Wiki     |           Get revisions history of a wiki page           |
+|        create_wiki_page         |     Wiki     |                  Create a new wiki page                  |
+|        update_wiki_page         |     Wiki     |               Update an existing wiki page               |
+|        delete_wiki_page         |     Wiki     |                    Delete a wiki page                    |
 
 ## 🐛 Debugging
 
