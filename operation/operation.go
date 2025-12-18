@@ -13,6 +13,7 @@ import (
 	"gitea.com/gitea/gitea-mcp/operation/issue"
 	"gitea.com/gitea/gitea-mcp/operation/label"
 	"gitea.com/gitea/gitea-mcp/operation/milestone"
+	"gitea.com/gitea/gitea-mcp/operation/actions"
 	"gitea.com/gitea/gitea-mcp/operation/pull"
 	"gitea.com/gitea/gitea-mcp/operation/repo"
 	"gitea.com/gitea/gitea-mcp/operation/search"
@@ -31,6 +32,9 @@ var mcpServer *server.MCPServer
 func RegisterTool(s *server.MCPServer) {
 	// User Tool
 	s.AddTools(user.Tool.Tools()...)
+
+	// Actions Tool
+	s.AddTools(actions.Tool.Tools()...)
 
 	// Repo Tool
 	s.AddTools(repo.Tool.Tools()...)

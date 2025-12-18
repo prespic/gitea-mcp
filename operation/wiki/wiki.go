@@ -2,14 +2,9 @@ package wiki
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"strings"
 
-	"gitea.com/gitea/gitea-mcp/pkg/flag"
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
@@ -122,13 +117,9 @@ func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
 	// Use direct HTTP request because SDK does not support yet wikis
-	result, err := makeWikiAPIRequest(ctx, client, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.QueryEscape(owner), url.QueryEscape(repo)), nil)
+	var result any
+	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.QueryEscape(owner), url.QueryEscape(repo)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list wiki pages err: %v", err))
 	}
@@ -151,12 +142,8 @@ func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 		return to.ErrorResult(fmt.Errorf("pageName is required"))
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
-	result, err := makeWikiAPIRequest(ctx, client, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil)
+	var result any
+	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki page err: %v", err))
 	}
@@ -179,12 +166,8 @@ func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return to.ErrorResult(fmt.Errorf("pageName is required"))
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
-	result, err := makeWikiAPIRequest(ctx, client, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil)
+	var result any
+	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki revisions err: %v", err))
 	}
@@ -222,12 +205,8 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 		"message":        message,
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
-	result, err := makeWikiAPIRequest(ctx, client, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.QueryEscape(owner), url.QueryEscape(repo)), requestBody)
+	var result any
+	_, err := gitea.DoJSON(ctx, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.QueryEscape(owner), url.QueryEscape(repo)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create wiki page err: %v", err))
 	}
@@ -272,12 +251,8 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 		requestBody["message"] = fmt.Sprintf("Update wiki page '%s'", pageName)
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
-	result, err := makeWikiAPIRequest(ctx, client, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), requestBody)
+	var result any
+	_, err := gitea.DoJSON(ctx, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("update wiki page err: %v", err))
 	}
@@ -300,64 +275,10 @@ func DeleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 		return to.ErrorResult(fmt.Errorf("pageName is required"))
 	}
 
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-
-	_, err = makeWikiAPIRequest(ctx, client, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil)
+	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, nil)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("delete wiki page err: %v", err))
 	}
 
 	return to.TextResult(map[string]string{"message": "Wiki page deleted successfully"})
-}
-
-// Helper function to make HTTP requests to Gitea Wiki API
-func makeWikiAPIRequest(ctx context.Context, client interface{}, method, path string, body interface{}) (interface{}, error) {
-	// Use flags to get base URL and token
-	apiURL := fmt.Sprintf("%s/api/v1/%s", flag.Host, path)
-	
-	httpClient := &http.Client{}
-	
-	var reqBody io.Reader
-	if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
-		}
-		reqBody = strings.NewReader(string(bodyBytes))
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, apiURL, reqBody)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("token %s", flag.Token))
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("API request failed with status %d", resp.StatusCode)
-	}
-
-	if method == "DELETE" {
-		return map[string]string{"message": "success"}, nil
-	}
-
-	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return result, nil
 }

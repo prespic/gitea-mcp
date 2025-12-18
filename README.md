@@ -207,6 +207,33 @@ The Gitea MCP Server supports the following tools:
 |         edit_org_label       | Organization |                  Edit a label in an organization         |
 |       delete_org_label       | Organization |                 Delete a label in an organization        |
 |         search_repos         |  Repository  |                 Search for repositories                  |
+|   list_repo_action_secrets   |   Actions    | List repository Actions secrets (metadata only)          |
+|  upsert_repo_action_secret   |   Actions    | Create/update (upsert) a repository Actions secret       |
+|  delete_repo_action_secret   |   Actions    | Delete a repository Actions secret                       |
+|    list_org_action_secrets   |   Actions    | List organization Actions secrets (metadata only)        |
+|   upsert_org_action_secret   |   Actions    | Create/update (upsert) an organization Actions secret    |
+|   delete_org_action_secret   |   Actions    | Delete an organization Actions secret                    |
+|  list_repo_action_variables  |   Actions    | List repository Actions variables                        |
+|   get_repo_action_variable   |   Actions    | Get a repository Actions variable                        |
+| create_repo_action_variable  |   Actions    | Create a repository Actions variable                     |
+| update_repo_action_variable  |   Actions    | Update a repository Actions variable                     |
+| delete_repo_action_variable  |   Actions    | Delete a repository Actions variable                     |
+|  list_org_action_variables   |   Actions    | List organization Actions variables                      |
+|    get_org_action_variable   |   Actions    | Get an organization Actions variable                     |
+|  create_org_action_variable  |   Actions    | Create an organization Actions variable                  |
+|  update_org_action_variable  |   Actions    | Update an organization Actions variable                  |
+|  delete_org_action_variable  |   Actions    | Delete an organization Actions variable                  |
+|  list_repo_action_workflows  |   Actions    | List repository Actions workflows                        |
+|   get_repo_action_workflow   |   Actions    | Get a repository Actions workflow                        |
+| dispatch_repo_action_workflow|   Actions    | Trigger (dispatch) a repository Actions workflow         |
+|    list_repo_action_runs     |   Actions    | List repository Actions runs                             |
+|     get_repo_action_run      |   Actions    | Get a repository Actions run                             |
+|   cancel_repo_action_run     |   Actions    | Cancel a repository Actions run                          |
+|    rerun_repo_action_run     |   Actions    | Rerun a repository Actions run                           |
+|    list_repo_action_jobs     |   Actions    | List repository Actions jobs                             |
+|  list_repo_action_run_jobs   |   Actions    | List Actions jobs for a run                              |
+| get_repo_action_job_log_preview | Actions   | Get a job log preview (tail/limited)                     |
+| download_repo_action_job_log |   Actions    | Download a job log to a file                             |
 | get_gitea_mcp_server_version |    Server    |         Get the version of the Gitea MCP Server          |
 |       list_wiki_pages        |     Wiki     |          List all wiki pages in a repository            |
 |        get_wiki_page         |     Wiki     |       Get a wiki page content and metadata              |
