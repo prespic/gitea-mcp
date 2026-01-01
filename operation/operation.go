@@ -13,6 +13,7 @@ import (
 	"gitea.com/gitea/gitea-mcp/operation/issue"
 	"gitea.com/gitea/gitea-mcp/operation/label"
 	"gitea.com/gitea/gitea-mcp/operation/milestone"
+	"gitea.com/gitea/gitea-mcp/operation/timetracking"
 	"gitea.com/gitea/gitea-mcp/operation/actions"
 	"gitea.com/gitea/gitea-mcp/operation/pull"
 	"gitea.com/gitea/gitea-mcp/operation/repo"
@@ -59,6 +60,9 @@ func RegisterTool(s *server.MCPServer) {
 
 	// Wiki Tool
 	s.AddTools(wiki.Tool.Tools()...)
+
+	// Time Tracking Tool
+	s.AddTools(timetracking.Tool.Tools()...)
 
 	s.DeleteTools("")
 }
