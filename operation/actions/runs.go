@@ -43,7 +43,7 @@ var (
 		mcp.WithDescription("Get a repository Actions workflow by ID"),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("workflow_id", mcp.Required(), mcp.Description("workflow ID")),
+		mcp.WithString("workflow_id", mcp.Required(), mcp.Description("workflow ID or filename (e.g. 'my-workflow.yml')")),
 	)
 
 	DispatchRepoActionWorkflowTool = mcp.NewTool(
@@ -51,7 +51,7 @@ var (
 		mcp.WithDescription("Trigger (dispatch) a repository Actions workflow"),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("workflow_id", mcp.Required(), mcp.Description("workflow ID")),
+		mcp.WithString("workflow_id", mcp.Required(), mcp.Description("workflow ID or filename (e.g. 'my-workflow.yml')")),
 		mcp.WithString("ref", mcp.Required(), mcp.Description("git ref (branch or tag)")),
 		mcp.WithObject("inputs", mcp.Description("workflow inputs object")),
 	)
@@ -187,15 +187,15 @@ func GetRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if !ok || repo == "" {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	workflowID, ok := req.GetArguments()["workflow_id"].(float64)
-	if !ok || workflowID <= 0 {
+	workflowID, ok := req.GetArguments()["workflow_id"].(string)
+	if !ok || workflowID == "" {
 		return to.ErrorResult(fmt.Errorf("workflow_id is required"))
 	}
 
 	var result any
 	_, _, err := doJSONWithFallback(ctx, "GET",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/workflows/%d", url.PathEscape(owner), url.PathEscape(repo), int64(workflowID)),
+			fmt.Sprintf("repos/%s/%s/actions/workflows/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
 		},
 		nil, nil, &result,
 	)
@@ -215,8 +215,8 @@ func DispatchRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) 
 	if !ok || repo == "" {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	workflowID, ok := req.GetArguments()["workflow_id"].(float64)
-	if !ok || workflowID <= 0 {
+	workflowID, ok := req.GetArguments()["workflow_id"].(string)
+	if !ok || workflowID == "" {
 		return to.ErrorResult(fmt.Errorf("workflow_id is required"))
 	}
 	ref, ok := req.GetArguments()["ref"].(string)
@@ -245,8 +245,8 @@ func DispatchRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) 
 
 	_, _, err := doJSONWithFallback(ctx, "POST",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/workflows/%d/dispatches", url.PathEscape(owner), url.PathEscape(repo), int64(workflowID)),
-			fmt.Sprintf("repos/%s/%s/actions/workflows/%d/dispatch", url.PathEscape(owner), url.PathEscape(repo), int64(workflowID)),
+			fmt.Sprintf("repos/%s/%s/actions/workflows/%s/dispatches", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
+			fmt.Sprintf("repos/%s/%s/actions/workflows/%s/dispatch", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
 		},
 		nil, body, nil,
 	)
