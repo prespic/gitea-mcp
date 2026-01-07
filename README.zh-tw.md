@@ -164,56 +164,64 @@ cp gitea-mcp /usr/local/bin/
 
 Gitea MCP 伺服器支援以下工具：
 
-|             工具             |   範圍   |             描述             |
-| :--------------------------: | :------: | :--------------------------: |
-|       get_my_user_info       |   用戶   |      取得已認證用戶資訊      |
-|        get_user_orgs         |   用戶   |    取得已認證用戶所屬組織    |
-|         create_repo          |   倉庫   |          創建新倉庫          |
-|          fork_repo           |   倉庫   |           復刻倉庫           |
-|        list_my_repos         |   倉庫   |       列出用戶所有倉庫       |
-|        create_branch         |   分支   |          創建新分支          |
-|        delete_branch         |   分支   |           刪除分支           |
-|        list_branches         |   分支   |         列出所有分支         |
-|        create_release        | 版本發布 |        創建新版本發布        |
-|        delete_release        | 版本發布 |         刪除版本發布         |
-|         get_release          | 版本發布 |         取得版本發布         |
-|      get_latest_release      | 版本發布 |       取得最新版本發布       |
-|        list_releases         | 版本發布 |       列出所有版本發布       |
-|          create_tag          |   標籤   |          創建新標籤          |
-|          delete_tag          |   標籤   |           刪除標籤           |
-|           get_tag            |   標籤   |           取得標籤           |
-|          list_tags           |   標籤   |         列出所有標籤         |
-|      list_repo_commits       |   提交   |         列出所有提交         |
-|       get_file_content       |   文件   |    取得文件內容與中繼資料    |
-|       get_dir_content        |   文件   |       取得目錄內容列表       |
-|         create_file          |   文件   |          創建新文件          |
-|         update_file          |   文件   |         更新現有文件         |
-|         delete_file          |   文件   |           刪除文件           |
-|      get_issue_by_index      |   問題   |        依索引取得問題        |
-|       list_repo_issues       |   問題   |         列出所有問題         |
-|         create_issue         |   問題   |          創建新問題          |
-|     create_issue_comment     |   問題   |       在問題上創建評論       |
-|          edit_issue          |   問題   |           編輯問題           |
-|      edit_issue_comment      |   問題   |         編輯問題評論         |
-| get_issue_comments_by_index  |   問題   |      依索引取得問題評論      |
-|  get_pull_request_by_index   | 拉取請求 |      依索引取得拉取請求      |
-|   list_repo_pull_requests    | 拉取請求 |       列出所有拉取請求       |
-|     create_pull_request      | 拉取請求 |        創建新拉取請求        |
-| create_pull_request_reviewer | 拉取請求 |      為拉取請求添加審查者    |
-|         search_users         |   用戶   |           搜尋用戶           |
-|       search_org_teams       |   組織   |         搜尋組織團隊         |
-|       list_org_labels        |   組織   |         列出組織標籤         |
-|       create_org_label       |   組織   |         創建組織標籤         |
-|        edit_org_label        |   組織   |         編輯組織標籤         |
-|       delete_org_label       |   組織   |         刪除組織標籤         |
-|         search_repos         |   倉庫   |           搜尋倉庫           |
-| get_gitea_mcp_server_version |  伺服器  |  取得 Gitea MCP 伺服器版本   |
-|       list_wiki_pages        |   Wiki   |      列出所有 Wiki 頁面      |
-|        get_wiki_page         |   Wiki   | 取得 Wiki 頁面內容與中繼資料 |
-|      get_wiki_revisions      |   Wiki   |      取得 Wiki 修訂歷史      |
-|       create_wiki_page       |   Wiki   |       創建新 Wiki 頁面       |
-|       update_wiki_page       |   Wiki   |      更新現有 Wiki 頁面      |
-|       delete_wiki_page       |   Wiki   |        刪除 Wiki 頁面        |
+|               工具                |   範圍   |             描述             |
+| :-------------------------------: | :------: | :--------------------------: |
+|         get_my_user_info          |   用戶   |      取得已認證用戶資訊      |
+|           get_user_orgs           |   用戶   |    取得已認證用戶所屬組織    |
+|            create_repo            |   倉庫   |          創建新倉庫          |
+|             fork_repo             |   倉庫   |           復刻倉庫           |
+|           list_my_repos           |   倉庫   |       列出用戶所有倉庫       |
+|           create_branch           |   分支   |          創建新分支          |
+|           delete_branch           |   分支   |           刪除分支           |
+|           list_branches           |   分支   |         列出所有分支         |
+|          create_release           | 版本發布 |        創建新版本發布        |
+|          delete_release           | 版本發布 |         刪除版本發布         |
+|            get_release            | 版本發布 |         取得版本發布         |
+|        get_latest_release         | 版本發布 |       取得最新版本發布       |
+|           list_releases           | 版本發布 |       列出所有版本發布       |
+|            create_tag             |   標籤   |          創建新標籤          |
+|            delete_tag             |   標籤   |           刪除標籤           |
+|              get_tag              |   標籤   |           取得標籤           |
+|             list_tags             |   標籤   |         列出所有標籤         |
+|         list_repo_commits         |   提交   |         列出所有提交         |
+|         get_file_content          |   文件   |    取得文件內容與中繼資料    |
+|          get_dir_content          |   文件   |       取得目錄內容列表       |
+|            create_file            |   文件   |          創建新文件          |
+|            update_file            |   文件   |         更新現有文件         |
+|            delete_file            |   文件   |           刪除文件           |
+|        get_issue_by_index         |   問題   |        依索引取得問題        |
+|         list_repo_issues          |   問題   |         列出所有問題         |
+|           create_issue            |   問題   |          創建新問題          |
+|       create_issue_comment        |   問題   |       在問題上創建評論       |
+|            edit_issue             |   問題   |           編輯問題           |
+|        edit_issue_comment         |   問題   |         編輯問題評論         |
+|    get_issue_comments_by_index    |   問題   |      依索引取得問題評論      |
+|     get_pull_request_by_index     | 拉取請求 |      依索引取得拉取請求      |
+|      list_repo_pull_requests      | 拉取請求 |       列出所有拉取請求       |
+|        create_pull_request        | 拉取請求 |        創建新拉取請求        |
+|   create_pull_request_reviewer    | 拉取請求 |     為拉取請求添加審查者     |
+|   delete_pull_request_reviewer    | 拉取請求 |     移除拉取請求的審查者     |
+|     list_pull_request_reviews     | 拉取請求 |    列出拉取請求的所有審查    |
+|      get_pull_request_review      | 拉取請求 |      依 ID 取得特定審查      |
+| list_pull_request_review_comments | 拉取請求 |      列出審查的行內評論      |
+|    create_pull_request_review     | 拉取請求 |   創建審查（可含行內評論）   |
+|    submit_pull_request_review     | 拉取請求 |       提交待處理的審查       |
+|    delete_pull_request_review     | 拉取請求 |           刪除審查           |
+|    dismiss_pull_request_review    | 拉取請求 |     駁回審查（可附訊息）     |
+|           search_users            |   用戶   |           搜尋用戶           |
+|         search_org_teams          |   組織   |         搜尋組織團隊         |
+|          list_org_labels          |   組織   |         列出組織標籤         |
+|         create_org_label          |   組織   |         創建組織標籤         |
+|          edit_org_label           |   組織   |         編輯組織標籤         |
+|         delete_org_label          |   組織   |         刪除組織標籤         |
+|           search_repos            |   倉庫   |           搜尋倉庫           |
+|   get_gitea_mcp_server_version    |  伺服器  |  取得 Gitea MCP 伺服器版本   |
+|          list_wiki_pages          |   Wiki   |      列出所有 Wiki 頁面      |
+|           get_wiki_page           |   Wiki   | 取得 Wiki 頁面內容與中繼資料 |
+|        get_wiki_revisions         |   Wiki   |      取得 Wiki 修訂歷史      |
+|         create_wiki_page          |   Wiki   |       創建新 Wiki 頁面       |
+|         update_wiki_page          |   Wiki   |      更新現有 Wiki 頁面      |
+|         delete_wiki_page          |   Wiki   |        刪除 Wiki 頁面        |
 
 ## 🐛 調試
 
