@@ -13,6 +13,7 @@
   - [What is Gitea?](#what-is-gitea)
   - [What is MCP?](#what-is-mcp)
   - [🚧 Installation](#-installation)
+    - [Usage with Claude Code](#usage-with-claude-code)
     - [Usage with VS Code](#usage-with-vs-code)
     - [📥 Download the official binary release](#-download-the-official-binary-release)
     - [🔧 Build from Source](#-build-from-source)
@@ -31,6 +32,17 @@ Gitea is a community-managed lightweight code hosting solution written in Go. It
 Model Context Protocol (MCP) is a protocol that allows for the integration of various tools and systems through a chat interface. It enables seamless command execution and management of repositories, users, and other resources.
 
 ## 🚧 Installation
+
+### Usage with Claude Code
+
+This method uses `go run` and requires [Go](https://go.dev) to be installed.
+
+```bash
+claude mcp add --transport stdio gitea \
+  --env GITEA_ACCESS_TOKEN=token \
+  --env GITEA_HOST=https://gitea.com \
+  -- go run gitea.com/gitea/gitea-mcp@latest -t stdio
+```
 
 ### Usage with VS Code
 

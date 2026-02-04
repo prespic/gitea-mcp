@@ -13,6 +13,7 @@
   - [什麼是 Gitea？](#什麼是-gitea)
   - [什麼是 MCP？](#什麼是-mcp)
   - [🚧 安裝](#-安裝)
+    - [在 Claude Code 中使用](#在-claude-code-中使用)
     - [在 VS Code 中使用](#在-vs-code-中使用)
     - [📥 下載官方二進位版本](#-下載官方二進位版本)
     - [🔧 從原始碼建置](#-從原始碼建置)
@@ -31,6 +32,17 @@ Gitea 是一個由社群管理的輕量級程式碼託管解決方案，使用 G
 Model Context Protocol (MCP) 是一種協議，允許透過聊天介面整合各種工具與系統。它能夠無縫執行命令並管理倉庫、使用者及其他資源。
 
 ## 🚧 安裝
+
+### 在 Claude Code 中使用
+
+此方式使用 `go run`，需要安裝 [Go](https://go.dev)。
+
+```bash
+claude mcp add --transport stdio gitea \
+  --env GITEA_ACCESS_TOKEN=token \
+  --env GITEA_HOST=https://gitea.com \
+  -- go run gitea.com/gitea/gitea-mcp@latest -t stdio
+```
 
 ### 在 VS Code 中使用
 
