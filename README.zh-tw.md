@@ -38,7 +38,7 @@ Model Context Protocol (MCP) 是一種協議，允許透過聊天介面整合各
 此方式使用 `go run`，需要安裝 [Go](https://go.dev)。
 
 ```bash
-claude mcp add --transport stdio gitea \
+claude mcp add --transport stdio --scope user gitea \
   --env GITEA_ACCESS_TOKEN=token \
   --env GITEA_HOST=https://gitea.com \
   -- go run gitea.com/gitea/gitea-mcp@latest -t stdio
