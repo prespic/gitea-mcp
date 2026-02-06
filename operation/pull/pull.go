@@ -18,6 +18,7 @@ var Tool = tool.New()
 
 const (
 	GetPullRequestByIndexToolName         = "get_pull_request_by_index"
+	GetPullRequestDiffToolName            = "get_pull_request_diff"
 	ListRepoPullRequestsToolName          = "list_repo_pull_requests"
 	CreatePullRequestToolName             = "create_pull_request"
 	CreatePullRequestReviewerToolName     = "create_pull_request_reviewer"
@@ -38,6 +39,15 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository pull request index")),
+	)
+
+	GetPullRequestDiffTool = mcp.NewTool(
+		GetPullRequestDiffToolName,
+		mcp.WithDescription("get pull request diff"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository pull request index")),
+		mcp.WithBoolean("binary", mcp.Description("whether to include binary file changes")),
 	)
 
 	ListRepoPullRequestsTool = mcp.NewTool(
@@ -168,6 +178,10 @@ func init() {
 		Handler: GetPullRequestByIndexFn,
 	})
 	Tool.RegisterRead(server.ServerTool{
+		Tool:    GetPullRequestDiffTool,
+		Handler: GetPullRequestDiffFn,
+	})
+	Tool.RegisterRead(server.ServerTool{
 		Tool:    ListRepoPullRequestsTool,
 		Handler: ListRepoPullRequestsFn,
 	})
@@ -237,6 +251,43 @@ func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	}
 
 	return to.TextResult(pr)
+}
+
+func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called GetPullRequestDiffFn")
+	owner, ok := req.GetArguments()["owner"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("owner is required"))
+	}
+	repo, ok := req.GetArguments()["repo"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("repo is required"))
+	}
+	index, ok := req.GetArguments()["index"].(float64)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("index is required"))
+	}
+	binary, _ := req.GetArguments()["binary"].(bool)
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	diffBytes, _, err := client.GetPullRequestDiff(owner, repo, int64(index), gitea_sdk.PullRequestDiffOptions{
+		Binary: binary,
+	})
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v diff err: %v", owner, repo, int64(index), err))
+	}
+
+	result := map[string]interface{}{
+		"diff":   string(diffBytes),
+		"binary": binary,
+		"index":  int64(index),
+		"repo":   repo,
+		"owner":  owner,
+	}
+	return to.TextResult(result)
 }
 
 func ListRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
