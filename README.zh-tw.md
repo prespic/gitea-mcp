@@ -220,6 +220,7 @@ Gitea MCP 伺服器支援以下工具：
 |    submit_pull_request_review     | 拉取請求 |       提交待處理的審查       |
 |    delete_pull_request_review     | 拉取請求 |           刪除審查           |
 |    dismiss_pull_request_review    | 拉取請求 |     駁回審查（可附訊息）     |
+|        merge_pull_request         | 拉取請求 |        合併拉取請求        |
 |           search_users            |   用戶   |           搜尋用戶           |
 |         search_org_teams          |   組織   |         搜尋組織團隊         |
 |          list_org_labels          |   組織   |         列出組織標籤         |

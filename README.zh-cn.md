@@ -220,6 +220,7 @@ Gitea MCP 服务器支持以下工具：
 |    submit_pull_request_review     | 拉取请求 |      提交待处理的审查      |
 |    delete_pull_request_review     | 拉取请求 |          删除审查          |
 |    dismiss_pull_request_review    | 拉取请求 |    驳回审查（可附消息）    |
+|        merge_pull_request         | 拉取请求 |        合并拉取请求        |
 |           search_users            |   用户   |          搜索用户          |
 |         search_org_teams          |   组织   |        搜索组织团队        |
 |          list_org_labels          |   组织   |        列出组织标签        |

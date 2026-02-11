@@ -30,6 +30,7 @@ const (
 	SubmitPullRequestReviewToolName       = "submit_pull_request_review"
 	DeletePullRequestReviewToolName       = "delete_pull_request_review"
 	DismissPullRequestReviewToolName      = "dismiss_pull_request_review"
+	MergePullRequestToolName              = "merge_pull_request"
 )
 
 var (
@@ -170,6 +171,17 @@ var (
 		mcp.WithNumber("review_id", mcp.Required(), mcp.Description("review ID")),
 		mcp.WithString("message", mcp.Description("dismissal reason")),
 	)
+
+	MergePullRequestTool = mcp.NewTool(
+		MergePullRequestToolName,
+		mcp.WithDescription("merge a pull request"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
+		mcp.WithString("merge_style", mcp.Description("merge style: merge, rebase, rebase-merge, squash, fast-forward-only"), mcp.Enum("merge", "rebase", "rebase-merge", "squash", "fast-forward-only"), mcp.DefaultString("merge")),
+		mcp.WithString("message", mcp.Description("custom merge commit message (optional)")),
+		mcp.WithBoolean("delete_branch", mcp.Description("delete the branch after merge"), mcp.DefaultBool(false)),
+	)
 )
 
 func init() {
@@ -224,6 +236,10 @@ func init() {
 	Tool.RegisterWrite(server.ServerTool{
 		Tool:    DismissPullRequestReviewTool,
 		Handler: DismissPullRequestReviewFn,
+	})
+	Tool.RegisterWrite(server.ServerTool{
+		Tool:    MergePullRequestTool,
+		Handler: MergePullRequestFn,
 	})
 }
 
@@ -791,6 +807,71 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 		"review_id":  int64(reviewID),
 		"pr_index":   int64(index),
 		"repository": fmt.Sprintf("%s/%s", owner, repo),
+	}
+
+	return to.TextResult(successMsg)
+}
+
+func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called MergePullRequestFn")
+	owner, ok := req.GetArguments()["owner"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("owner is required"))
+	}
+	repo, ok := req.GetArguments()["repo"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("repo is required"))
+	}
+	index, ok := req.GetArguments()["index"].(float64)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("index is required"))
+	}
+
+	mergeStyle := "merge"
+	if style, exists := req.GetArguments()["merge_style"].(string); exists && style != "" {
+		mergeStyle = style
+	}
+
+	message := ""
+	if msg, exists := req.GetArguments()["message"].(string); exists {
+		message = msg
+	}
+
+	deleteBranch := false
+	if del, exists := req.GetArguments()["delete_branch"].(bool); exists {
+		deleteBranch = del
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+
+	opt := gitea_sdk.MergePullRequestOption{
+		Style:                  gitea_sdk.MergeStyle(mergeStyle),
+		Message:                message,
+		DeleteBranchAfterMerge: deleteBranch,
+	}
+
+	merged, resp, err := client.MergePullRequest(owner, repo, int64(index), opt)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+	}
+
+	if !merged && resp != nil && resp.StatusCode >= 400 {
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v failed: HTTP %d %s", owner, repo, int64(index), resp.StatusCode, resp.Status))
+	}
+
+	if !merged {
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v returned merged=false", owner, repo, int64(index)))
+	}
+
+	successMsg := map[string]interface{}{
+		"merged":         merged,
+		"pr_index":       int64(index),
+		"repository":     fmt.Sprintf("%s/%s", owner, repo),
+		"merge_style":    mergeStyle,
+		"branch_deleted": deleteBranch,
 	}
 
 	return to.TextResult(successMsg)

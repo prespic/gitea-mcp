@@ -221,6 +221,7 @@ The Gitea MCP Server supports the following tools:
 |    submit_pull_request_review     | Pull Request |                 Submit a pending review                  |
 |    delete_pull_request_review     | Pull Request |                     Delete a review                      |
 |    dismiss_pull_request_review    | Pull Request |          Dismiss a review with optional message          |
+|        merge_pull_request         | Pull Request |                  Merge a pull request                    |
 |           search_users            |     User     |                     Search for users                     |
 |         search_org_teams          | Organization |           Search for teams in an organization            |
 |          list_org_labels          | Organization |        List labels defined at organization level         |
