@@ -13,6 +13,110 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
+func TestEditPullRequestFn(t *testing.T) {
+	const (
+		owner = "octo"
+		repo  = "demo"
+		index = 7
+	)
+
+	var (
+		mu          sync.Mutex
+		gotMethod   string
+		gotPath     string
+		gotBody     map[string]any
+	)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"1.12.0"}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s", owner, repo):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"private":false}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner, repo, index):
+			mu.Lock()
+			gotMethod = r.Method
+			gotPath = r.URL.Path
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			gotBody = body
+			mu.Unlock()
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"number":%d,"title":"%s","state":"open"}`, index, body["title"])))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	origHost := flag.Host
+	origToken := flag.Token
+	origVersion := flag.Version
+	flag.Host = server.URL
+	flag.Token = ""
+	flag.Version = "test"
+	defer func() {
+		flag.Host = origHost
+		flag.Token = origToken
+		flag.Version = origVersion
+	}()
+
+	req := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Arguments: map[string]any{
+				"owner": owner,
+				"repo":  repo,
+				"index": float64(index),
+				"title": "WIP: my feature",
+				"state": "open",
+			},
+		},
+	}
+
+	result, err := EditPullRequestFn(context.Background(), req)
+	if err != nil {
+		t.Fatalf("EditPullRequestFn() error = %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if gotMethod != http.MethodPatch {
+		t.Fatalf("expected PATCH request, got %s", gotMethod)
+	}
+	if gotPath != fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner, repo, index) {
+		t.Fatalf("unexpected path: %s", gotPath)
+	}
+	if gotBody["title"] != "WIP: my feature" {
+		t.Fatalf("expected title 'WIP: my feature', got %v", gotBody["title"])
+	}
+	if gotBody["state"] != "open" {
+		t.Fatalf("expected state 'open', got %v", gotBody["state"])
+	}
+
+	if len(result.Content) == 0 {
+		t.Fatalf("expected content in result")
+	}
+	textContent, ok := mcp.AsTextContent(result.Content[0])
+	if !ok {
+		t.Fatalf("expected text content, got %T", result.Content[0])
+	}
+
+	var parsed struct {
+		Result map[string]any `json:"Result"`
+	}
+	if err := json.Unmarshal([]byte(textContent.Text), &parsed); err != nil {
+		t.Fatalf("unmarshal result text: %v", err)
+	}
+	if got := parsed.Result["title"].(string); got != "WIP: my feature" {
+		t.Fatalf("result title = %q, want %q", got, "WIP: my feature")
+	}
+}
+
 func TestGetPullRequestDiffFn(t *testing.T) {
 	const (
 		owner   = "octo"

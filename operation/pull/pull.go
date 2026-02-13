@@ -6,6 +6,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -31,6 +32,7 @@ const (
 	DeletePullRequestReviewToolName       = "delete_pull_request_review"
 	DismissPullRequestReviewToolName      = "dismiss_pull_request_review"
 	MergePullRequestToolName              = "merge_pull_request"
+	EditPullRequestToolName               = "edit_pull_request"
 )
 
 var (
@@ -182,6 +184,22 @@ var (
 		mcp.WithString("message", mcp.Description("custom merge commit message (optional)")),
 		mcp.WithBoolean("delete_branch", mcp.Description("delete the branch after merge"), mcp.DefaultBool(false)),
 	)
+
+	EditPullRequestTool = mcp.NewTool(
+		EditPullRequestToolName,
+		mcp.WithDescription("edit a pull request"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
+		mcp.WithString("title", mcp.Description("pull request title")),
+		mcp.WithString("body", mcp.Description("pull request body content")),
+		mcp.WithString("base", mcp.Description("pull request base branch")),
+		mcp.WithString("assignee", mcp.Description("username to assign")),
+		mcp.WithArray("assignees", mcp.Description("usernames to assign"), mcp.Items(map[string]interface{}{"type": "string"})),
+		mcp.WithNumber("milestone", mcp.Description("milestone number")),
+		mcp.WithString("state", mcp.Description("pull request state"), mcp.Enum("open", "closed")),
+		mcp.WithBoolean("allow_maintainer_edit", mcp.Description("allow maintainer to edit the pull request")),
+	)
 )
 
 func init() {
@@ -240,6 +258,10 @@ func init() {
 	Tool.RegisterWrite(server.ServerTool{
 		Tool:    MergePullRequestTool,
 		Handler: MergePullRequestFn,
+	})
+	Tool.RegisterWrite(server.ServerTool{
+		Tool:    EditPullRequestTool,
+		Handler: EditPullRequestFn,
 	})
 }
 
@@ -875,4 +897,67 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	}
 
 	return to.TextResult(successMsg)
+}
+
+func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called EditPullRequestFn")
+	owner, ok := req.GetArguments()["owner"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("owner is required"))
+	}
+	repo, ok := req.GetArguments()["repo"].(string)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("repo is required"))
+	}
+	index, ok := req.GetArguments()["index"].(float64)
+	if !ok {
+		return to.ErrorResult(fmt.Errorf("index is required"))
+	}
+
+	opt := gitea_sdk.EditPullRequestOption{}
+
+	if title, ok := req.GetArguments()["title"].(string); ok {
+		opt.Title = title
+	}
+	if body, ok := req.GetArguments()["body"].(string); ok {
+		opt.Body = ptr.To(body)
+	}
+	if base, ok := req.GetArguments()["base"].(string); ok {
+		opt.Base = base
+	}
+	if assignee, ok := req.GetArguments()["assignee"].(string); ok {
+		opt.Assignee = assignee
+	}
+	if assigneesArg, exists := req.GetArguments()["assignees"]; exists {
+		if assigneesSlice, ok := assigneesArg.([]interface{}); ok {
+			var assignees []string
+			for _, a := range assigneesSlice {
+				if s, ok := a.(string); ok {
+					assignees = append(assignees, s)
+				}
+			}
+			opt.Assignees = assignees
+		}
+	}
+	if milestone, ok := req.GetArguments()["milestone"].(float64); ok {
+		opt.Milestone = int64(milestone)
+	}
+	if state, ok := req.GetArguments()["state"].(string); ok {
+		opt.State = ptr.To(gitea_sdk.StateType(state))
+	}
+	if allowMaintainerEdit, ok := req.GetArguments()["allow_maintainer_edit"].(bool); ok {
+		opt.AllowMaintainerEdit = ptr.To(allowMaintainerEdit)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+
+	pr, _, err := client.EditPullRequest(owner, repo, int64(index), opt)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("edit %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+	}
+
+	return to.TextResult(pr)
 }
