@@ -6,6 +6,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
@@ -380,9 +381,9 @@ func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("issue index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	labelsRaw, ok := req.GetArguments()["labels"].([]interface{})
 	if !ok {
@@ -405,9 +406,9 @@ func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issueLabels, _, err := client.AddIssueLabels(owner, repo, int64(index), opt)
+	issueLabels, _, err := client.AddIssueLabels(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("add labels to %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("add labels to %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 	return to.TextResult(issueLabels)
 }
@@ -422,9 +423,9 @@ func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("issue index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	labelsRaw, ok := req.GetArguments()["labels"].([]interface{})
 	if !ok {
@@ -447,9 +448,9 @@ func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issueLabels, _, err := client.ReplaceIssueLabels(owner, repo, int64(index), opt)
+	issueLabels, _, err := client.ReplaceIssueLabels(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("replace labels on %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("replace labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 	return to.TextResult(issueLabels)
 }
@@ -464,18 +465,18 @@ func ClearIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("issue index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.ClearIssueLabels(owner, repo, int64(index))
+	_, err = client.ClearIssueLabels(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("clear labels on %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("clear labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 	return to.TextResult("Labels cleared successfully")
 }
@@ -490,9 +491,9 @@ func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("issue index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	labelID, ok := req.GetArguments()["label_id"].(float64)
 	if !ok {
@@ -503,9 +504,9 @@ func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteIssueLabel(owner, repo, int64(index), int64(labelID))
+	_, err = client.DeleteIssueLabel(owner, repo, index, int64(labelID))
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", int64(labelID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", int64(labelID), owner, repo, index, err))
 	}
 	return to.TextResult("Label removed successfully")
 }

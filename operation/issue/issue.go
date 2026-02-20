@@ -6,6 +6,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
@@ -136,17 +137,17 @@ func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issue, _, err := client.GetIssue(owner, repo, int64(index))
+	issue, _, err := client.GetIssue(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("get %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(issue)
@@ -235,9 +236,9 @@ func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	body, ok := req.GetArguments()["body"].(string)
 	if !ok {
@@ -250,9 +251,9 @@ func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issueComment, _, err := client.CreateIssueComment(owner, repo, int64(index), opt)
+	issueComment, _, err := client.CreateIssueComment(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("create %v/%v/issue/%v/comment err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("create %v/%v/issue/%v/comment err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(issueComment)
@@ -268,9 +269,9 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.EditIssueOption{}
@@ -307,9 +308,9 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issue, _, err := client.EditIssue(owner, repo, int64(index), opt)
+	issue, _, err := client.EditIssue(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("edit %v/%v/issue/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("edit %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(issue)
@@ -358,18 +359,18 @@ func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	opt := gitea_sdk.ListIssueCommentOptions{}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issue, _, err := client.ListIssueComments(owner, repo, int64(index), opt)
+	issue, _, err := client.ListIssueComments(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get %v/%v/issues/%v/comments err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("get %v/%v/issues/%v/comments err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(issue)

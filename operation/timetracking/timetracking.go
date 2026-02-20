@@ -8,6 +8,7 @@ import (
 	gitea_sdk "code.gitea.io/sdk/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -134,19 +135,19 @@ func StartStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.StartIssueStopWatch(owner, repo, int64(index))
+	_, err = client.StartIssueStopWatch(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("start stopwatch on %s/%s#%d err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("start stopwatch on %s/%s#%d err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(fmt.Sprintf("Stopwatch started on issue %s/%s#%d", owner, repo, int64(index)))
+	return to.TextResult(fmt.Sprintf("Stopwatch started on issue %s/%s#%d", owner, repo, index))
 }
 
 func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -159,19 +160,19 @@ func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.StopIssueStopWatch(owner, repo, int64(index))
+	_, err = client.StopIssueStopWatch(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("stop stopwatch on %s/%s#%d err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("stop stopwatch on %s/%s#%d err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(fmt.Sprintf("Stopwatch stopped on issue %s/%s#%d - time recorded", owner, repo, int64(index)))
+	return to.TextResult(fmt.Sprintf("Stopwatch stopped on issue %s/%s#%d - time recorded", owner, repo, index))
 }
 
 func DeleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -184,19 +185,19 @@ func DeleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteIssueStopwatch(owner, repo, int64(index))
+	_, err = client.DeleteIssueStopwatch(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete stopwatch on %s/%s#%d err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("delete stopwatch on %s/%s#%d err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(fmt.Sprintf("Stopwatch deleted/cancelled on issue %s/%s#%d", owner, repo, int64(index)))
+	return to.TextResult(fmt.Sprintf("Stopwatch deleted/cancelled on issue %s/%s#%d", owner, repo, index))
 }
 
 func GetMyStopwatchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -227,9 +228,9 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	page, ok := req.GetArguments()["page"].(float64)
 	if !ok {
@@ -244,17 +245,17 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	times, _, err := client.ListIssueTrackedTimes(owner, repo, int64(index), gitea_sdk.ListTrackedTimesOptions{
+	times, _, err := client.ListIssueTrackedTimes(owner, repo, index, gitea_sdk.ListTrackedTimesOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),
 			PageSize: int(pageSize),
 		},
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("list tracked times for %s/%s#%d err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("list tracked times for %s/%s#%d err: %v", owner, repo, index, err))
 	}
 	if len(times) == 0 {
-		return to.TextResult(fmt.Sprintf("No tracked times for issue %s/%s#%d", owner, repo, int64(index)))
+		return to.TextResult(fmt.Sprintf("No tracked times for issue %s/%s#%d", owner, repo, index))
 	}
 	return to.TextResult(times)
 }
@@ -269,9 +270,9 @@ func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	timeSeconds, ok := req.GetArguments()["time"].(float64)
@@ -282,11 +283,11 @@ func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	trackedTime, _, err := client.AddTime(owner, repo, int64(index), gitea_sdk.AddTimeOption{
+	trackedTime, _, err := client.AddTime(owner, repo, index, gitea_sdk.AddTimeOption{
 		Time: int64(timeSeconds),
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("add tracked time to %s/%s#%d err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("add tracked time to %s/%s#%d err: %v", owner, repo, index, err))
 	}
 	return to.TextResult(trackedTime)
 }
@@ -302,9 +303,9 @@ func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
 
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
@@ -314,11 +315,11 @@ func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteTime(owner, repo, int64(index), int64(id))
+	_, err = client.DeleteTime(owner, repo, index, int64(id))
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete tracked time %d from %s/%s#%d err: %v", int64(id), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("delete tracked time %d from %s/%s#%d err: %v", int64(id), owner, repo, index, err))
 	}
-	return to.TextResult(fmt.Sprintf("Tracked time entry %d deleted from issue %s/%s#%d", int64(id), owner, repo, int64(index)))
+	return to.TextResult(fmt.Sprintf("Tracked time entry %d deleted from issue %s/%s#%d", int64(id), owner, repo, index))
 }
 
 func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

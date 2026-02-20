@@ -6,6 +6,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
@@ -275,17 +276,17 @@ func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	pr, _, err := client.GetPullRequest(owner, repo, int64(index))
+	pr, _, err := client.GetPullRequest(owner, repo, index)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(pr)
@@ -301,9 +302,9 @@ func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	binary, _ := req.GetArguments()["binary"].(bool)
 
@@ -311,17 +312,17 @@ func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	diffBytes, _, err := client.GetPullRequestDiff(owner, repo, int64(index), gitea_sdk.PullRequestDiffOptions{
+	diffBytes, _, err := client.GetPullRequestDiff(owner, repo, index, gitea_sdk.PullRequestDiffOptions{
 		Binary: binary,
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v diff err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v diff err: %v", owner, repo, index, err))
 	}
 
 	result := map[string]interface{}{
 		"diff":   string(diffBytes),
 		"binary": binary,
-		"index":  int64(index),
+		"index":  index,
 		"repo":   repo,
 		"owner":  owner,
 	}
@@ -426,9 +427,9 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	var reviewers []string
@@ -458,12 +459,12 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	_, err = client.CreateReviewRequests(owner, repo, int64(index), gitea_sdk.PullReviewRequestOptions{
+	_, err = client.CreateReviewRequests(owner, repo, index, gitea_sdk.PullReviewRequestOptions{
 		Reviewers:     reviewers,
 		TeamReviewers: teamReviewers,
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("create review requests for %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("create review requests for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	// Return a success message instead of the Response object which contains non-serializable functions
@@ -471,7 +472,7 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 		"message":        "Successfully created review requests",
 		"reviewers":      reviewers,
 		"team_reviewers": teamReviewers,
-		"pr_index":       int64(index),
+		"pr_index":       index,
 		"repository":     fmt.Sprintf("%s/%s", owner, repo),
 	}
 
@@ -488,9 +489,9 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	var reviewers []string
@@ -520,19 +521,19 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	_, err = client.DeleteReviewRequests(owner, repo, int64(index), gitea_sdk.PullReviewRequestOptions{
+	_, err = client.DeleteReviewRequests(owner, repo, index, gitea_sdk.PullReviewRequestOptions{
 		Reviewers:     reviewers,
 		TeamReviewers: teamReviewers,
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete review requests for %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("delete review requests for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	successMsg := map[string]interface{}{
 		"message":        "Successfully deleted review requests",
 		"reviewers":      reviewers,
 		"team_reviewers": teamReviewers,
-		"pr_index":       int64(index),
+		"pr_index":       index,
 		"repository":     fmt.Sprintf("%s/%s", owner, repo),
 	}
 
@@ -549,9 +550,9 @@ func ListPullRequestReviewsFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	page, ok := req.GetArguments()["page"].(float64)
 	if !ok {
@@ -567,14 +568,14 @@ func ListPullRequestReviewsFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	reviews, _, err := client.ListPullReviews(owner, repo, int64(index), gitea_sdk.ListPullReviewsOptions{
+	reviews, _, err := client.ListPullReviews(owner, repo, index, gitea_sdk.ListPullReviewsOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),
 			PageSize: int(pageSize),
 		},
 	})
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("list reviews for %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("list reviews for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(reviews)
@@ -590,9 +591,9 @@ func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
@@ -604,9 +605,9 @@ func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	review, _, err := client.GetPullReview(owner, repo, int64(index), int64(reviewID))
+	review, _, err := client.GetPullReview(owner, repo, index, int64(reviewID))
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("get review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
 	return to.TextResult(review)
@@ -622,9 +623,9 @@ func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolReques
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
@@ -636,9 +637,9 @@ func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolReques
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	comments, _, err := client.ListPullReviewComments(owner, repo, int64(index), int64(reviewID))
+	comments, _, err := client.ListPullReviewComments(owner, repo, index, int64(reviewID))
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("list review comments for review %v on %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("list review comments for review %v on %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
 	return to.TextResult(comments)
@@ -654,9 +655,9 @@ func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.CreatePullReviewOptions{}
@@ -700,9 +701,9 @@ func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	review, _, err := client.CreatePullReview(owner, repo, int64(index), opt)
+	review, _, err := client.CreatePullReview(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("create review for %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("create review for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	return to.TextResult(review)
@@ -718,9 +719,9 @@ func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
@@ -743,9 +744,9 @@ func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	review, _, err := client.SubmitPullReview(owner, repo, int64(index), int64(reviewID), opt)
+	review, _, err := client.SubmitPullReview(owner, repo, index, int64(reviewID), opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("submit review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("submit review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
 	return to.TextResult(review)
@@ -761,9 +762,9 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
@@ -775,15 +776,15 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	_, err = client.DeletePullReview(owner, repo, int64(index), int64(reviewID))
+	_, err = client.DeletePullReview(owner, repo, index, int64(reviewID))
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("delete review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
 	successMsg := map[string]interface{}{
 		"message":    "Successfully deleted review",
 		"review_id":  int64(reviewID),
-		"pr_index":   int64(index),
+		"pr_index":   index,
 		"repository": fmt.Sprintf("%s/%s", owner, repo),
 	}
 
@@ -800,9 +801,9 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 	if !ok {
 		return to.ErrorResult(fmt.Errorf("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
@@ -819,15 +820,15 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
-	_, err = client.DismissPullReview(owner, repo, int64(index), int64(reviewID), opt)
+	_, err = client.DismissPullReview(owner, repo, index, int64(reviewID), opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("dismiss review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("dismiss review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
 	successMsg := map[string]interface{}{
 		"message":    "Successfully dismissed review",
 		"review_id":  int64(reviewID),
-		"pr_index":   int64(index),
+		"pr_index":   index,
 		"repository": fmt.Sprintf("%s/%s", owner, repo),
 	}
 
