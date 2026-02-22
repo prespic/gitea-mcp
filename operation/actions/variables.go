@@ -2,8 +2,10 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -21,11 +23,11 @@ const (
 	UpdateRepoActionVariableToolName = "update_repo_action_variable"
 	DeleteRepoActionVariableToolName = "delete_repo_action_variable"
 
-	ListOrgActionVariablesToolName   = "list_org_action_variables"
-	GetOrgActionVariableToolName     = "get_org_action_variable"
-	CreateOrgActionVariableToolName  = "create_org_action_variable"
-	UpdateOrgActionVariableToolName  = "update_org_action_variable"
-	DeleteOrgActionVariableToolName  = "delete_org_action_variable"
+	ListOrgActionVariablesToolName  = "list_org_action_variables"
+	GetOrgActionVariableToolName    = "get_org_action_variable"
+	CreateOrgActionVariableToolName = "create_org_action_variable"
+	UpdateOrgActionVariableToolName = "update_org_action_variable"
+	DeleteOrgActionVariableToolName = "delete_org_action_variable"
 )
 
 var (
@@ -131,11 +133,11 @@ func ListRepoActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called ListRepoActionVariablesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -147,8 +149,8 @@ func ListRepoActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 
 	query := url.Values{}
-	query.Set("page", fmt.Sprintf("%d", int(page)))
-	query.Set("limit", fmt.Sprintf("%d", int(pageSize)))
+	query.Set("page", strconv.Itoa(int(page)))
+	query.Set("limit", strconv.Itoa(int(pageSize)))
 
 	var result any
 	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/actions/variables", url.PathEscape(owner), url.PathEscape(repo)), query, nil, &result)
@@ -162,15 +164,15 @@ func GetRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called GetRepoActionVariableFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -188,19 +190,19 @@ func CreateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 	log.Debugf("Called CreateRepoActionVariableFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	value, ok := req.GetArguments()["value"].(string)
 	if !ok || value == "" {
-		return to.ErrorResult(fmt.Errorf("value is required"))
+		return to.ErrorResult(errors.New("value is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -218,19 +220,19 @@ func UpdateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 	log.Debugf("Called UpdateRepoActionVariableFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	value, ok := req.GetArguments()["value"].(string)
 	if !ok || value == "" {
-		return to.ErrorResult(fmt.Errorf("value is required"))
+		return to.ErrorResult(errors.New("value is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -248,15 +250,15 @@ func DeleteRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 	log.Debugf("Called DeleteRepoActionVariableFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -274,7 +276,7 @@ func ListOrgActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	log.Debugf("Called ListOrgActionVariablesFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -302,11 +304,11 @@ func GetOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	log.Debugf("Called GetOrgActionVariableFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -324,15 +326,15 @@ func CreateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called CreateOrgActionVariableFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	value, ok := req.GetArguments()["value"].(string)
 	if !ok || value == "" {
-		return to.ErrorResult(fmt.Errorf("value is required"))
+		return to.ErrorResult(errors.New("value is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
 
@@ -355,15 +357,15 @@ func UpdateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called UpdateOrgActionVariableFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	value, ok := req.GetArguments()["value"].(string)
 	if !ok || value == "" {
-		return to.ErrorResult(fmt.Errorf("value is required"))
+		return to.ErrorResult(errors.New("value is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
 
@@ -385,11 +387,11 @@ func DeleteOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called DeleteOrgActionVariableFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 
 	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/variables/%s", url.PathEscape(org), url.PathEscape(name)), nil, nil, nil)
@@ -398,5 +400,3 @@ func DeleteOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 	return to.TextResult(map[string]any{"message": "variable deleted"})
 }
-
-

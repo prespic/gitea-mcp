@@ -2,11 +2,11 @@ package milestone
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
-	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -103,15 +103,15 @@ func GetMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	log.Debugf("Called GetMilestoneFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("id is required"))
+		return to.ErrorResult(errors.New("id is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -129,11 +129,11 @@ func ListMilestonesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	log.Debugf("Called ListMilestonesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	state, ok := req.GetArguments()["state"].(string)
 	if !ok {
@@ -174,15 +174,15 @@ func CreateMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	log.Debugf("Called CreateMilestoneFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	title, ok := req.GetArguments()["title"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("title is required"))
+		return to.ErrorResult(errors.New("title is required"))
 	}
 
 	opt := gitea_sdk.CreateMilestoneOption{
@@ -210,15 +210,15 @@ func EditMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	log.Debugf("Called EditMilestoneFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("id is required"))
+		return to.ErrorResult(errors.New("id is required"))
 	}
 
 	opt := gitea_sdk.EditMilestoneOption{}
@@ -229,11 +229,11 @@ func EditMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	}
 	description, ok := req.GetArguments()["description"].(string)
 	if ok {
-		opt.Description = ptr.To(description)
+		opt.Description = new(description)
 	}
 	state, ok := req.GetArguments()["state"].(string)
 	if ok {
-		opt.State = ptr.To(gitea_sdk.StateType(state))
+		opt.State = new(gitea_sdk.StateType(state))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -252,15 +252,15 @@ func DeleteMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	log.Debugf("Called DeleteMilestoneFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("id is required"))
+		return to.ErrorResult(errors.New("id is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {

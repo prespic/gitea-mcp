@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -113,16 +114,16 @@ func GetFileContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	log.Debugf("Called GetFileFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	ref, _ := req.GetArguments()["ref"].(string)
 	filePath, ok := req.GetArguments()["filePath"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("filePath is required"))
+		return to.ErrorResult(errors.New("filePath is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -151,7 +152,6 @@ func GetFileContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 				LineNumber: line,
 				Content:    scanner.Text(),
 			})
-
 		}
 		if err := scanner.Err(); err != nil {
 			return to.ErrorResult(fmt.Errorf("scan content err: %v", err))
@@ -177,16 +177,16 @@ func GetDirContentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	log.Debugf("Called GetDirContentFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	ref, _ := req.GetArguments()["ref"].(string)
 	filePath, ok := req.GetArguments()["filePath"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("filePath is required"))
+		return to.ErrorResult(errors.New("filePath is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -203,15 +203,15 @@ func CreateFileFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	log.Debugf("Called CreateFileFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	filePath, ok := req.GetArguments()["filePath"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("filePath is required"))
+		return to.ErrorResult(errors.New("filePath is required"))
 	}
 	content, _ := req.GetArguments()["content"].(string)
 	message, _ := req.GetArguments()["message"].(string)
@@ -239,19 +239,19 @@ func UpdateFileFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	log.Debugf("Called UpdateFileFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	filePath, ok := req.GetArguments()["filePath"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("filePath is required"))
+		return to.ErrorResult(errors.New("filePath is required"))
 	}
 	sha, ok := req.GetArguments()["sha"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("sha is required"))
+		return to.ErrorResult(errors.New("sha is required"))
 	}
 	content, _ := req.GetArguments()["content"].(string)
 	message, _ := req.GetArguments()["message"].(string)
@@ -280,21 +280,21 @@ func DeleteFileFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	log.Debugf("Called DeleteFileFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	filePath, ok := req.GetArguments()["filePath"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("filePath is required"))
+		return to.ErrorResult(errors.New("filePath is required"))
 	}
 	message, _ := req.GetArguments()["message"].(string)
 	branchName, _ := req.GetArguments()["branch_name"].(string)
 	sha, ok := req.GetArguments()["sha"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("sha is required"))
+		return to.ErrorResult(errors.New("sha is required"))
 	}
 	opt := gitea_sdk.DeleteFileOptions{
 		FileOptions: gitea_sdk.FileOptions{

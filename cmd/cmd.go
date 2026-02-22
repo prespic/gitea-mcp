@@ -99,12 +99,12 @@ func init() {
 }
 
 func Execute() {
-	defer log.Default().Sync()
+	defer log.Default().Sync() //nolint:errcheck // best-effort flush
 	if err := operation.Run(); err != nil {
 		if err == context.Canceled {
 			log.Info("Server shutdown due to context cancellation")
 			return
 		}
-		log.Fatalf("Run Gitea MCP Server Error: %v", err)
+		log.Fatalf("Run Gitea MCP Server Error: %v", err) //nolint:gocritic // intentional exit after defer
 	}
 }

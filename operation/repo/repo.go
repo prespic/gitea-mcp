@@ -7,7 +7,6 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
-	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -166,12 +165,12 @@ func ForkRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 		return to.ErrorResult(errors.New("repository name is required"))
 	}
 	organization, ok := req.GetArguments()["organization"].(string)
-	organizationPtr := ptr.To(organization)
+	organizationPtr := new(organization)
 	if !ok || organization == "" {
 		organizationPtr = nil
 	}
 	name, ok := req.GetArguments()["name"].(string)
-	namePtr := ptr.To(name)
+	namePtr := new(name)
 	if !ok || name == "" {
 		namePtr = nil
 	}

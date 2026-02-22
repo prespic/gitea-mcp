@@ -5,9 +5,7 @@ import (
 	"gitea.com/gitea/gitea-mcp/pkg/flag"
 )
 
-var (
-	Version = "dev"
-)
+var Version = "dev"
 
 func init() {
 	flag.Version = Version

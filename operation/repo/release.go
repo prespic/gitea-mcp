@@ -2,12 +2,12 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
-	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -112,23 +112,23 @@ func CreateReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	log.Debugf("Called CreateReleasesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return nil, fmt.Errorf("owner is required")
+		return nil, errors.New("owner is required")
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return nil, fmt.Errorf("repo is required")
+		return nil, errors.New("repo is required")
 	}
 	tagName, ok := req.GetArguments()["tag_name"].(string)
 	if !ok {
-		return nil, fmt.Errorf("tag_name is required")
+		return nil, errors.New("tag_name is required")
 	}
 	target, ok := req.GetArguments()["target"].(string)
 	if !ok {
-		return nil, fmt.Errorf("target is required")
+		return nil, errors.New("target is required")
 	}
 	title, ok := req.GetArguments()["title"].(string)
 	if !ok {
-		return nil, fmt.Errorf("title is required")
+		return nil, errors.New("title is required")
 	}
 	isDraft, _ := req.GetArguments()["is_draft"].(bool)
 	isPreRelease, _ := req.GetArguments()["is_pre_release"].(bool)
@@ -157,15 +157,15 @@ func DeleteReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	log.Debugf("Called DeleteReleaseFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return nil, fmt.Errorf("owner is required")
+		return nil, errors.New("owner is required")
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return nil, fmt.Errorf("repo is required")
+		return nil, errors.New("repo is required")
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
-		return nil, fmt.Errorf("id is required")
+		return nil, errors.New("id is required")
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -184,15 +184,15 @@ func GetReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	log.Debugf("Called GetReleaseFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return nil, fmt.Errorf("owner is required")
+		return nil, errors.New("owner is required")
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return nil, fmt.Errorf("repo is required")
+		return nil, errors.New("repo is required")
 	}
 	id, ok := req.GetArguments()["id"].(float64)
 	if !ok {
-		return nil, fmt.Errorf("id is required")
+		return nil, errors.New("id is required")
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -211,11 +211,11 @@ func GetLatestReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	log.Debugf("Called GetLatestReleaseFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return nil, fmt.Errorf("owner is required")
+		return nil, errors.New("owner is required")
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return nil, fmt.Errorf("repo is required")
+		return nil, errors.New("repo is required")
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -234,21 +234,21 @@ func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	log.Debugf("Called ListReleasesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return nil, fmt.Errorf("owner is required")
+		return nil, errors.New("owner is required")
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return nil, fmt.Errorf("repo is required")
+		return nil, errors.New("repo is required")
 	}
 	var pIsDraft *bool
 	isDraft, ok := req.GetArguments()["is_draft"].(bool)
 	if ok {
-		pIsDraft = ptr.To(isDraft)
+		pIsDraft = new(isDraft)
 	}
 	var pIsPreRelease *bool
 	isPreRelease, ok := req.GetArguments()["is_pre_release"].(bool)
 	if ok {
-		pIsPreRelease = ptr.To(isPreRelease)
+		pIsPreRelease = new(isPreRelease)
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	pageSize, _ := req.GetArguments()["pageSize"].(float64)

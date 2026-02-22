@@ -34,7 +34,7 @@ func NewClient(token string) (*gitea.Client, error) {
 	}
 
 	// Set user agent for the client
-	client.SetUserAgent(fmt.Sprintf("gitea-mcp-server/%s", flag.Version))
+	client.SetUserAgent("gitea-mcp-server/" + flag.Version)
 	return client, nil
 }
 

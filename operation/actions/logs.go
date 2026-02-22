@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -67,7 +68,7 @@ func fetchJobLogBytes(ctx context.Context, owner, repo string, jobID int64) ([]b
 		}
 		lastErr = err
 		var httpErr *gitea.HTTPError
-		if errors.As(err, &httpErr) && (httpErr.StatusCode == 404 || httpErr.StatusCode == 405) {
+		if errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusNotFound || httpErr.StatusCode == http.StatusMethodNotAllowed) {
 			continue
 		}
 		return nil, p, err
@@ -109,15 +110,15 @@ func GetRepoActionJobLogPreviewFn(ctx context.Context, req mcp.CallToolRequest) 
 	log.Debugf("Called GetRepoActionJobLogPreviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	jobIDFloat, ok := req.GetArguments()["job_id"].(float64)
 	if !ok || jobIDFloat <= 0 {
-		return to.ErrorResult(fmt.Errorf("job_id is required"))
+		return to.ErrorResult(errors.New("job_id is required"))
 	}
 	tailLinesFloat, _ := req.GetArguments()["tail_lines"].(float64)
 	maxBytesFloat, _ := req.GetArguments()["max_bytes"].(float64)
@@ -140,13 +141,13 @@ func GetRepoActionJobLogPreviewFn(ctx context.Context, req mcp.CallToolRequest) 
 	limited, truncated := limitBytes(tailed, maxBytes)
 
 	return to.TextResult(map[string]any{
-		"endpoint":     usedPath,
-		"job_id":       jobID,
-		"bytes":        len(raw),
-		"tail_lines":   tailLines,
-		"max_bytes":    maxBytes,
-		"truncated":    truncated,
-		"log":          string(limited),
+		"endpoint":   usedPath,
+		"job_id":     jobID,
+		"bytes":      len(raw),
+		"tail_lines": tailLines,
+		"max_bytes":  maxBytes,
+		"truncated":  truncated,
+		"log":        string(limited),
 	})
 }
 
@@ -154,15 +155,15 @@ func DownloadRepoActionJobLogFn(ctx context.Context, req mcp.CallToolRequest) (*
 	log.Debugf("Called DownloadRepoActionJobLogFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	jobIDFloat, ok := req.GetArguments()["job_id"].(float64)
 	if !ok || jobIDFloat <= 0 {
-		return to.ErrorResult(fmt.Errorf("job_id is required"))
+		return to.ErrorResult(errors.New("job_id is required"))
 	}
 	outputPath, _ := req.GetArguments()["output_path"].(string)
 	jobID := int64(jobIDFloat)
@@ -194,5 +195,3 @@ func DownloadRepoActionJobLogFn(ctx context.Context, req mcp.CallToolRequest) (*
 		"bytes":    len(raw),
 	})
 }
-
-

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -39,19 +40,19 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	log.Debugf("Called ListRepoCommitsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, ok := req.GetArguments()["page"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("page is required"))
+		return to.ErrorResult(errors.New("page is required"))
 	}
 	pageSize, ok := req.GetArguments()["page_size"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("page_size is required"))
+		return to.ErrorResult(errors.New("page_size is required"))
 	}
 	sha, _ := req.GetArguments()["sha"].(string)
 	path, _ := req.GetArguments()["path"].(string)

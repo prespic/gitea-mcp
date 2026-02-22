@@ -2,6 +2,7 @@ package wiki
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -110,11 +111,11 @@ func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	log.Debugf("Called ListWikiPagesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 
 	// Use direct HTTP request because SDK does not support yet wikis
@@ -131,15 +132,15 @@ func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	log.Debugf("Called GetWikiPageFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	pageName, ok := req.GetArguments()["pageName"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("pageName is required"))
+		return to.ErrorResult(errors.New("pageName is required"))
 	}
 
 	var result any
@@ -155,15 +156,15 @@ func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	log.Debugf("Called GetWikiRevisionsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	pageName, ok := req.GetArguments()["pageName"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("pageName is required"))
+		return to.ErrorResult(errors.New("pageName is required"))
 	}
 
 	var result any
@@ -179,19 +180,19 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	log.Debugf("Called CreateWikiPageFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	title, ok := req.GetArguments()["title"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("title is required"))
+		return to.ErrorResult(errors.New("title is required"))
 	}
 	contentBase64, ok := req.GetArguments()["content_base64"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("content_base64 is required"))
+		return to.ErrorResult(errors.New("content_base64 is required"))
 	}
 
 	message, _ := req.GetArguments()["message"].(string)
@@ -218,19 +219,19 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	log.Debugf("Called UpdateWikiPageFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	pageName, ok := req.GetArguments()["pageName"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("pageName is required"))
+		return to.ErrorResult(errors.New("pageName is required"))
 	}
 	contentBase64, ok := req.GetArguments()["content_base64"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("content_base64 is required"))
+		return to.ErrorResult(errors.New("content_base64 is required"))
 	}
 
 	requestBody := map[string]string{
@@ -264,15 +265,15 @@ func DeleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	log.Debugf("Called DeleteWikiPageFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	pageName, ok := req.GetArguments()["pageName"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("pageName is required"))
+		return to.ErrorResult(errors.New("pageName is required"))
 	}
 
 	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, nil)

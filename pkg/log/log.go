@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -35,14 +34,14 @@ func Default() *zap.Logger {
 			home = os.TempDir()
 		}
 
-		logDir := fmt.Sprintf("%s/.gitea-mcp", home)
+		logDir := home + "/.gitea-mcp"
 		if err := os.MkdirAll(logDir, 0o700); err != nil {
 			// Fallback to temp directory if creation fails
 			logDir = os.TempDir()
 		}
 
 		wss = append(wss, zapcore.AddSync(&lumberjack.Logger{
-			Filename:   fmt.Sprintf("%s/gitea-mcp.log", logDir),
+			Filename:   logDir + "/gitea-mcp.log",
 			MaxSize:    100,
 			MaxBackups: 10,
 			MaxAge:     30,

@@ -3,6 +3,10 @@ EXECUTABLE := gitea-mcp
 VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 LDFLAGS := -X "main.Version=$(VERSION)"
 
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.10.1
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
+
 .PHONY: help
 help: ## Print this help message.
 	@echo "Usage: make [target]"
@@ -45,8 +49,29 @@ air: ## Install air for hot reload.
 dev: air ## run the application with hot reload
 	air --build.cmd "make build" --build.bin ./gitea-mcp
 
+.PHONY: lint
+lint: lint-go ## lint everything
+
+.PHONY: lint-fix
+lint-fix: lint-go-fix ## lint everything and fix issues
+
+.PHONY: lint-go
+lint-go: ## lint go files
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+
+.PHONY: lint-go-fix
+lint-go-fix: ## lint go files and fix issues
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
+
+.PHONY: security-check
+security-check: ## run security check
+	$(GO) run $(GOVULNCHECK_PACKAGE) -show color ./... || true
+
+.PHONY: tidy
+tidy: ## run go mod tidy
+	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
+	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+
 .PHONY: vendor
-vendor: ## tidy and verify module dependencies
-	@echo 'Tidying and verifying module dependencies...'
-	go mod tidy
-	go mod verify
+vendor: tidy ## tidy and verify module dependencies
+	$(GO) mod verify

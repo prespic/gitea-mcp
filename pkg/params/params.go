@@ -9,7 +9,7 @@ import (
 // It accepts both numeric (float64 from JSON) and string representations.
 // This provides better UX for LLM callers that may naturally use strings
 // for identifiers like issue/PR numbers.
-func GetIndex(args map[string]interface{}, key string) (int64, error) {
+func GetIndex(args map[string]any, key string) (int64, error) {
 	val, exists := args[key]
 	if !exists {
 		return 0, fmt.Errorf("%s is required", key)

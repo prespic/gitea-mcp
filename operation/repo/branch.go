@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -64,15 +65,15 @@ func CreateBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	log.Debugf("Called CreateBranchFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	branch, ok := req.GetArguments()["branch"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("branch is required"))
+		return to.ErrorResult(errors.New("branch is required"))
 	}
 	oldBranch, _ := req.GetArguments()["old_branch"].(string)
 
@@ -95,15 +96,15 @@ func DeleteBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	log.Debugf("Called DeleteBranchFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	branch, ok := req.GetArguments()["branch"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("branch is required"))
+		return to.ErrorResult(errors.New("branch is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -121,11 +122,11 @@ func ListBranchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	log.Debugf("Called ListBranchesFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	opt := gitea_sdk.ListRepoBranchesOptions{
 		ListOptions: gitea_sdk.ListOptions{

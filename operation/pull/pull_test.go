@@ -21,10 +21,10 @@ func TestEditPullRequestFn(t *testing.T) {
 	)
 
 	var (
-		mu          sync.Mutex
-		gotMethod   string
-		gotPath     string
-		gotBody     map[string]any
+		mu        sync.Mutex
+		gotMethod string
+		gotPath   string
+		gotBody   map[string]any
 	)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +44,7 @@ func TestEditPullRequestFn(t *testing.T) {
 			gotBody = body
 			mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"number":%d,"title":"%s","state":"open"}`, index, body["title"])))
+			_, _ = w.Write(fmt.Appendf(nil, `{"number":%d,"title":"%s","state":"open"}`, index, body["title"]))
 		default:
 			http.NotFound(w, r)
 		}

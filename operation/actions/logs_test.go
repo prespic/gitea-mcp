@@ -20,5 +20,3 @@ func TestLimitBytesKeepsTail(t *testing.T) {
 		t.Fatalf("limitBytes tail = %q, want %q", string(out), "6789")
 	}
 }
-
-

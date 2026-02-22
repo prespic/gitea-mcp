@@ -6,5 +6,3 @@ import (
 
 // Tool is the registry for all Actions-related MCP tools.
 var Tool = tool.New()
-
-

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -27,7 +28,7 @@ const (
 type secretMeta struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
-	CreatedAt   time.Time `json:"created_at,omitempty"`
+	CreatedAt   time.Time `json:"created_at,omitzero"`
 }
 
 var (
@@ -97,11 +98,11 @@ func ListRepoActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called ListRepoActionSecretsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -142,19 +143,19 @@ func UpsertRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	log.Debugf("Called UpsertRepoActionSecretFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	data, ok := req.GetArguments()["data"].(string)
 	if !ok || data == "" {
-		return to.ErrorResult(fmt.Errorf("data is required"))
+		return to.ErrorResult(errors.New("data is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
 
@@ -177,15 +178,15 @@ func DeleteRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	log.Debugf("Called DeleteRepoActionSecretFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	secretName, ok := req.GetArguments()["secretName"].(string)
 	if !ok || secretName == "" {
-		return to.ErrorResult(fmt.Errorf("secretName is required"))
+		return to.ErrorResult(errors.New("secretName is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -203,7 +204,7 @@ func ListOrgActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	log.Debugf("Called ListOrgActionSecretsFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -244,15 +245,15 @@ func UpsertOrgActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called UpsertOrgActionSecretFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	name, ok := req.GetArguments()["name"].(string)
 	if !ok || name == "" {
-		return to.ErrorResult(fmt.Errorf("name is required"))
+		return to.ErrorResult(errors.New("name is required"))
 	}
 	data, ok := req.GetArguments()["data"].(string)
 	if !ok || data == "" {
-		return to.ErrorResult(fmt.Errorf("data is required"))
+		return to.ErrorResult(errors.New("data is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
 
@@ -275,11 +276,11 @@ func DeleteOrgActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called DeleteOrgActionSecretFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok || org == "" {
-		return to.ErrorResult(fmt.Errorf("org is required"))
+		return to.ErrorResult(errors.New("org is required"))
 	}
 	secretName, ok := req.GetArguments()["secretName"].(string)
 	if !ok || secretName == "" {
-		return to.ErrorResult(fmt.Errorf("secretName is required"))
+		return to.ErrorResult(errors.New("secretName is required"))
 	}
 
 	escapedOrg := url.PathEscape(org)

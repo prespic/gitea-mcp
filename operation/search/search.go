@@ -2,11 +2,11 @@ package search
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
-	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -61,23 +61,23 @@ var (
 func init() {
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    SearchUsersTool,
-		Handler: SearchUsersFn,
+		Handler: UsersFn,
 	})
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    SearOrgTeamsTool,
-		Handler: SearchOrgTeamsFn,
+		Handler: OrgTeamsFn,
 	})
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    SearchReposTool,
-		Handler: SearchReposFn,
+		Handler: ReposFn,
 	})
 }
 
-func SearchUsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called SearchUsersFn")
+func UsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called UsersFn")
 	keyword, ok := req.GetArguments()["keyword"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("keyword is required"))
+		return to.ErrorResult(errors.New("keyword is required"))
 	}
 	page, ok := req.GetArguments()["page"].(float64)
 	if !ok {
@@ -105,15 +105,15 @@ func SearchUsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	return to.TextResult(users)
 }
 
-func SearchOrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called SearchOrgTeamsFn")
+func OrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called OrgTeamsFn")
 	org, ok := req.GetArguments()["org"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("organization is required"))
+		return to.ErrorResult(errors.New("organization is required"))
 	}
 	query, ok := req.GetArguments()["query"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("query is required"))
+		return to.ErrorResult(errors.New("query is required"))
 	}
 	includeDescription, _ := req.GetArguments()["includeDescription"].(bool)
 	page, ok := req.GetArguments()["page"].(float64)
@@ -143,11 +143,11 @@ func SearchOrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(teams)
 }
 
-func SearchReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called SearchReposFn")
+func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called ReposFn")
 	keyword, ok := req.GetArguments()["keyword"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("keyword is required"))
+		return to.ErrorResult(errors.New("keyword is required"))
 	}
 	keywordIsTopic, _ := req.GetArguments()["keywordIsTopic"].(bool)
 	keywordInDescription, _ := req.GetArguments()["keywordInDescription"].(bool)
@@ -155,12 +155,12 @@ func SearchReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	var pIsPrivate *bool
 	isPrivate, ok := req.GetArguments()["isPrivate"].(bool)
 	if ok {
-		pIsPrivate = ptr.To(isPrivate)
+		pIsPrivate = new(isPrivate)
 	}
 	var pIsArchived *bool
 	isArchived, ok := req.GetArguments()["isArchived"].(bool)
 	if ok {
-		pIsArchived = ptr.To(isArchived)
+		pIsArchived = new(isArchived)
 	}
 	sort, _ := req.GetArguments()["sort"].(string)
 	order, _ := req.GetArguments()["order"].(string)

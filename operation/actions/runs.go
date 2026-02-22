@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"net/http"
 	"net/url"
+	"strconv"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -125,32 +128,32 @@ func init() {
 	Tool.RegisterRead(server.ServerTool{Tool: ListRepoActionRunJobsTool, Handler: ListRepoActionRunJobsFn})
 }
 
-func doJSONWithFallback(ctx context.Context, method string, paths []string, query url.Values, body any, respOut any) (string, int, error) {
+func doJSONWithFallback(ctx context.Context, method string, paths []string, query url.Values, body, respOut any) error {
 	var lastErr error
 	for _, p := range paths {
-		status, err := gitea.DoJSON(ctx, method, p, query, body, respOut)
+		_, err := gitea.DoJSON(ctx, method, p, query, body, respOut)
 		if err == nil {
-			return p, status, nil
+			return nil
 		}
 		lastErr = err
 		var httpErr *gitea.HTTPError
-		if errors.As(err, &httpErr) && (httpErr.StatusCode == 404 || httpErr.StatusCode == 405) {
+		if errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusNotFound || httpErr.StatusCode == http.StatusMethodNotAllowed) {
 			continue
 		}
-		return p, status, err
+		return err
 	}
-	return "", 0, lastErr
+	return lastErr
 }
 
 func ListRepoActionWorkflowsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoActionWorkflowsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -161,11 +164,11 @@ func ListRepoActionWorkflowsFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		pageSize = 50
 	}
 	query := url.Values{}
-	query.Set("page", fmt.Sprintf("%d", int(page)))
-	query.Set("limit", fmt.Sprintf("%d", int(pageSize)))
+	query.Set("page", strconv.Itoa(int(page)))
+	query.Set("limit", strconv.Itoa(int(pageSize)))
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/workflows", url.PathEscape(owner), url.PathEscape(repo)),
 		},
@@ -181,19 +184,19 @@ func GetRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called GetRepoActionWorkflowFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	workflowID, ok := req.GetArguments()["workflow_id"].(string)
 	if !ok || workflowID == "" {
-		return to.ErrorResult(fmt.Errorf("workflow_id is required"))
+		return to.ErrorResult(errors.New("workflow_id is required"))
 	}
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/workflows/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
 		},
@@ -209,30 +212,28 @@ func DispatchRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) 
 	log.Debugf("Called DispatchRepoActionWorkflowFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	workflowID, ok := req.GetArguments()["workflow_id"].(string)
 	if !ok || workflowID == "" {
-		return to.ErrorResult(fmt.Errorf("workflow_id is required"))
+		return to.ErrorResult(errors.New("workflow_id is required"))
 	}
 	ref, ok := req.GetArguments()["ref"].(string)
 	if !ok || ref == "" {
-		return to.ErrorResult(fmt.Errorf("ref is required"))
+		return to.ErrorResult(errors.New("ref is required"))
 	}
 
 	var inputs map[string]any
 	if raw, exists := req.GetArguments()["inputs"]; exists {
 		if m, ok := raw.(map[string]any); ok {
 			inputs = m
-		} else if m, ok := raw.(map[string]interface{}); ok {
+		} else if m, ok := raw.(map[string]any); ok {
 			inputs = make(map[string]any, len(m))
-			for k, v := range m {
-				inputs[k] = v
-			}
+			maps.Copy(inputs, m)
 		}
 	}
 
@@ -243,7 +244,7 @@ func DispatchRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) 
 		body["inputs"] = inputs
 	}
 
-	_, _, err := doJSONWithFallback(ctx, "POST",
+	err := doJSONWithFallback(ctx, "POST",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/workflows/%s/dispatches", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
 			fmt.Sprintf("repos/%s/%s/actions/workflows/%s/dispatch", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(workflowID)),
@@ -252,7 +253,7 @@ func DispatchRepoActionWorkflowFn(ctx context.Context, req mcp.CallToolRequest) 
 	)
 	if err != nil {
 		var httpErr *gitea.HTTPError
-		if errors.As(err, &httpErr) && (httpErr.StatusCode == 404 || httpErr.StatusCode == 405) {
+		if errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusNotFound || httpErr.StatusCode == http.StatusMethodNotAllowed) {
 			return to.ErrorResult(fmt.Errorf("workflow dispatch not supported on this Gitea version (endpoint returned %d). Check https://docs.gitea.com/api/1.24/ for available Actions endpoints", httpErr.StatusCode))
 		}
 		return to.ErrorResult(fmt.Errorf("dispatch action workflow err: %v", err))
@@ -264,11 +265,11 @@ func ListRepoActionRunsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	log.Debugf("Called ListRepoActionRunsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -281,14 +282,14 @@ func ListRepoActionRunsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	statusFilter, _ := req.GetArguments()["status"].(string)
 
 	query := url.Values{}
-	query.Set("page", fmt.Sprintf("%d", int(page)))
-	query.Set("limit", fmt.Sprintf("%d", int(pageSize)))
+	query.Set("page", strconv.Itoa(int(page)))
+	query.Set("limit", strconv.Itoa(int(pageSize)))
 	if statusFilter != "" {
 		query.Set("status", statusFilter)
 	}
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/runs", url.PathEscape(owner), url.PathEscape(repo)),
 		},
@@ -304,19 +305,19 @@ func GetRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	log.Debugf("Called GetRepoActionRunFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	runID, ok := req.GetArguments()["run_id"].(float64)
 	if !ok || runID <= 0 {
-		return to.ErrorResult(fmt.Errorf("run_id is required"))
+		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/runs/%d", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
 		},
@@ -332,18 +333,18 @@ func CancelRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	log.Debugf("Called CancelRepoActionRunFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	runID, ok := req.GetArguments()["run_id"].(float64)
 	if !ok || runID <= 0 {
-		return to.ErrorResult(fmt.Errorf("run_id is required"))
+		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
-	_, _, err := doJSONWithFallback(ctx, "POST",
+	err := doJSONWithFallback(ctx, "POST",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/runs/%d/cancel", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
 		},
@@ -359,18 +360,18 @@ func RerunRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	log.Debugf("Called RerunRepoActionRunFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	runID, ok := req.GetArguments()["run_id"].(float64)
 	if !ok || runID <= 0 {
-		return to.ErrorResult(fmt.Errorf("run_id is required"))
+		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
-	_, _, err := doJSONWithFallback(ctx, "POST",
+	err := doJSONWithFallback(ctx, "POST",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
 			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun-failed-jobs", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
@@ -379,7 +380,7 @@ func RerunRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	)
 	if err != nil {
 		var httpErr *gitea.HTTPError
-		if errors.As(err, &httpErr) && (httpErr.StatusCode == 404 || httpErr.StatusCode == 405) {
+		if errors.As(err, &httpErr) && (httpErr.StatusCode == http.StatusNotFound || httpErr.StatusCode == http.StatusMethodNotAllowed) {
 			return to.ErrorResult(fmt.Errorf("workflow rerun not supported on this Gitea version (endpoint returned %d). Check https://docs.gitea.com/api/1.24/ for available Actions endpoints", httpErr.StatusCode))
 		}
 		return to.ErrorResult(fmt.Errorf("rerun action run err: %v", err))
@@ -391,11 +392,11 @@ func ListRepoActionJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	log.Debugf("Called ListRepoActionJobsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -408,14 +409,14 @@ func ListRepoActionJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	statusFilter, _ := req.GetArguments()["status"].(string)
 
 	query := url.Values{}
-	query.Set("page", fmt.Sprintf("%d", int(page)))
-	query.Set("limit", fmt.Sprintf("%d", int(pageSize)))
+	query.Set("page", strconv.Itoa(int(page)))
+	query.Set("limit", strconv.Itoa(int(pageSize)))
 	if statusFilter != "" {
 		query.Set("status", statusFilter)
 	}
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/jobs", url.PathEscape(owner), url.PathEscape(repo)),
 		},
@@ -431,15 +432,15 @@ func ListRepoActionRunJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called ListRepoActionRunJobsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok || owner == "" {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok || repo == "" {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	runID, ok := req.GetArguments()["run_id"].(float64)
 	if !ok || runID <= 0 {
-		return to.ErrorResult(fmt.Errorf("run_id is required"))
+		return to.ErrorResult(errors.New("run_id is required"))
 	}
 	page, _ := req.GetArguments()["page"].(float64)
 	if page <= 0 {
@@ -451,11 +452,11 @@ func ListRepoActionRunJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	}
 
 	query := url.Values{}
-	query.Set("page", fmt.Sprintf("%d", int(page)))
-	query.Set("limit", fmt.Sprintf("%d", int(pageSize)))
+	query.Set("page", strconv.Itoa(int(page)))
+	query.Set("limit", strconv.Itoa(int(pageSize)))
 
 	var result any
-	_, _, err := doJSONWithFallback(ctx, "GET",
+	err := doJSONWithFallback(ctx, "GET",
 		[]string{
 			fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
 		},

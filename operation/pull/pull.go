@@ -2,12 +2,12 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
 	"gitea.com/gitea/gitea-mcp/pkg/params"
-	"gitea.com/gitea/gitea-mcp/pkg/ptr"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -83,8 +83,8 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
-		mcp.WithArray("reviewers", mcp.Description("list of reviewer usernames"), mcp.Items(map[string]interface{}{"type": "string"})),
-		mcp.WithArray("team_reviewers", mcp.Description("list of team reviewer names"), mcp.Items(map[string]interface{}{"type": "string"})),
+		mcp.WithArray("reviewers", mcp.Description("list of reviewer usernames"), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithArray("team_reviewers", mcp.Description("list of team reviewer names"), mcp.Items(map[string]any{"type": "string"})),
 	)
 
 	DeletePullRequestReviewerTool = mcp.NewTool(
@@ -93,8 +93,8 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
-		mcp.WithArray("reviewers", mcp.Description("list of reviewer usernames to remove"), mcp.Items(map[string]interface{}{"type": "string"})),
-		mcp.WithArray("team_reviewers", mcp.Description("list of team reviewer names to remove"), mcp.Items(map[string]interface{}{"type": "string"})),
+		mcp.WithArray("reviewers", mcp.Description("list of reviewer usernames to remove"), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithArray("team_reviewers", mcp.Description("list of team reviewer names to remove"), mcp.Items(map[string]any{"type": "string"})),
 	)
 
 	ListPullRequestReviewsTool = mcp.NewTool(
@@ -134,13 +134,13 @@ var (
 		mcp.WithString("state", mcp.Description("review state"), mcp.Enum("APPROVED", "REQUEST_CHANGES", "COMMENT", "PENDING")),
 		mcp.WithString("body", mcp.Description("review body/comment")),
 		mcp.WithString("commit_id", mcp.Description("commit SHA to review")),
-		mcp.WithArray("comments", mcp.Description("inline review comments (objects with path, body, old_line_num, new_line_num)"), mcp.Items(map[string]interface{}{
+		mcp.WithArray("comments", mcp.Description("inline review comments (objects with path, body, old_line_num, new_line_num)"), mcp.Items(map[string]any{
 			"type": "object",
-			"properties": map[string]interface{}{
-				"path":         map[string]interface{}{"type": "string", "description": "file path to comment on"},
-				"body":         map[string]interface{}{"type": "string", "description": "comment body"},
-				"old_line_num": map[string]interface{}{"type": "number", "description": "line number in the old file (for deletions/changes)"},
-				"new_line_num": map[string]interface{}{"type": "number", "description": "line number in the new file (for additions/changes)"},
+			"properties": map[string]any{
+				"path":         map[string]any{"type": "string", "description": "file path to comment on"},
+				"body":         map[string]any{"type": "string", "description": "comment body"},
+				"old_line_num": map[string]any{"type": "number", "description": "line number in the old file (for deletions/changes)"},
+				"new_line_num": map[string]any{"type": "number", "description": "line number in the new file (for additions/changes)"},
 			},
 		})),
 	)
@@ -196,7 +196,7 @@ var (
 		mcp.WithString("body", mcp.Description("pull request body content")),
 		mcp.WithString("base", mcp.Description("pull request base branch")),
 		mcp.WithString("assignee", mcp.Description("username to assign")),
-		mcp.WithArray("assignees", mcp.Description("usernames to assign"), mcp.Items(map[string]interface{}{"type": "string"})),
+		mcp.WithArray("assignees", mcp.Description("usernames to assign"), mcp.Items(map[string]any{"type": "string"})),
 		mcp.WithNumber("milestone", mcp.Description("milestone number")),
 		mcp.WithString("state", mcp.Description("pull request state"), mcp.Enum("open", "closed")),
 		mcp.WithBoolean("allow_maintainer_edit", mcp.Description("allow maintainer to edit the pull request")),
@@ -270,11 +270,11 @@ func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	log.Debugf("Called GetPullRequestByIndexFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -296,11 +296,11 @@ func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	log.Debugf("Called GetPullRequestDiffFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -319,7 +319,7 @@ func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v diff err: %v", owner, repo, index, err))
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"diff":   string(diffBytes),
 		"binary": binary,
 		"index":  index,
@@ -333,11 +333,11 @@ func ListRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	log.Debugf("Called ListRepoPullRequests")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	state, _ := req.GetArguments()["state"].(string)
 	sort, ok := req.GetArguments()["sort"].(string)
@@ -378,27 +378,27 @@ func CreatePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	log.Debugf("Called CreatePullRequestFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	title, ok := req.GetArguments()["title"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("title is required"))
+		return to.ErrorResult(errors.New("title is required"))
 	}
 	body, ok := req.GetArguments()["body"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("body is required"))
+		return to.ErrorResult(errors.New("body is required"))
 	}
 	head, ok := req.GetArguments()["head"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("head is required"))
+		return to.ErrorResult(errors.New("head is required"))
 	}
 	base, ok := req.GetArguments()["base"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("base is required"))
+		return to.ErrorResult(errors.New("base is required"))
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -421,11 +421,11 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 	log.Debugf("Called CreatePullRequestReviewerFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -434,7 +434,7 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 	var reviewers []string
 	if reviewersArg, exists := req.GetArguments()["reviewers"]; exists {
-		if reviewersSlice, ok := reviewersArg.([]interface{}); ok {
+		if reviewersSlice, ok := reviewersArg.([]any); ok {
 			for _, reviewer := range reviewersSlice {
 				if reviewerStr, ok := reviewer.(string); ok {
 					reviewers = append(reviewers, reviewerStr)
@@ -445,7 +445,7 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 	var teamReviewers []string
 	if teamReviewersArg, exists := req.GetArguments()["team_reviewers"]; exists {
-		if teamReviewersSlice, ok := teamReviewersArg.([]interface{}); ok {
+		if teamReviewersSlice, ok := teamReviewersArg.([]any); ok {
 			for _, teamReviewer := range teamReviewersSlice {
 				if teamReviewerStr, ok := teamReviewer.(string); ok {
 					teamReviewers = append(teamReviewers, teamReviewerStr)
@@ -468,7 +468,7 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 	}
 
 	// Return a success message instead of the Response object which contains non-serializable functions
-	successMsg := map[string]interface{}{
+	successMsg := map[string]any{
 		"message":        "Successfully created review requests",
 		"reviewers":      reviewers,
 		"team_reviewers": teamReviewers,
@@ -483,11 +483,11 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 	log.Debugf("Called DeletePullRequestReviewerFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -496,7 +496,7 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 	var reviewers []string
 	if reviewersArg, exists := req.GetArguments()["reviewers"]; exists {
-		if reviewersSlice, ok := reviewersArg.([]interface{}); ok {
+		if reviewersSlice, ok := reviewersArg.([]any); ok {
 			for _, reviewer := range reviewersSlice {
 				if reviewerStr, ok := reviewer.(string); ok {
 					reviewers = append(reviewers, reviewerStr)
@@ -507,7 +507,7 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 	var teamReviewers []string
 	if teamReviewersArg, exists := req.GetArguments()["team_reviewers"]; exists {
-		if teamReviewersSlice, ok := teamReviewersArg.([]interface{}); ok {
+		if teamReviewersSlice, ok := teamReviewersArg.([]any); ok {
 			for _, teamReviewer := range teamReviewersSlice {
 				if teamReviewerStr, ok := teamReviewer.(string); ok {
 					teamReviewers = append(teamReviewers, teamReviewerStr)
@@ -529,7 +529,7 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 		return to.ErrorResult(fmt.Errorf("delete review requests for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
-	successMsg := map[string]interface{}{
+	successMsg := map[string]any{
 		"message":        "Successfully deleted review requests",
 		"reviewers":      reviewers,
 		"team_reviewers": teamReviewers,
@@ -544,11 +544,11 @@ func ListPullRequestReviewsFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	log.Debugf("Called ListPullRequestReviewsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -585,11 +585,11 @@ func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	log.Debugf("Called GetPullRequestReviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -597,7 +597,7 @@ func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("review_id is required"))
+		return to.ErrorResult(errors.New("review_id is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -617,11 +617,11 @@ func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolReques
 	log.Debugf("Called ListPullRequestReviewCommentsFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -629,7 +629,7 @@ func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolReques
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("review_id is required"))
+		return to.ErrorResult(errors.New("review_id is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -649,11 +649,11 @@ func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called CreatePullRequestReviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -674,9 +674,9 @@ func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 
 	// Parse inline comments
 	if commentsArg, exists := req.GetArguments()["comments"]; exists {
-		if commentsSlice, ok := commentsArg.([]interface{}); ok {
+		if commentsSlice, ok := commentsArg.([]any); ok {
 			for _, comment := range commentsSlice {
-				if commentMap, ok := comment.(map[string]interface{}); ok {
+				if commentMap, ok := comment.(map[string]any); ok {
 					reviewComment := gitea_sdk.CreatePullReviewComment{}
 					if path, ok := commentMap["path"].(string); ok {
 						reviewComment.Path = path
@@ -713,11 +713,11 @@ func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called SubmitPullRequestReviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -725,11 +725,11 @@ func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("review_id is required"))
+		return to.ErrorResult(errors.New("review_id is required"))
 	}
 	state, ok := req.GetArguments()["state"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("state is required"))
+		return to.ErrorResult(errors.New("state is required"))
 	}
 
 	opt := gitea_sdk.SubmitPullReviewOptions{
@@ -756,11 +756,11 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	log.Debugf("Called DeletePullRequestReviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -768,7 +768,7 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("review_id is required"))
+		return to.ErrorResult(errors.New("review_id is required"))
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -781,7 +781,7 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("delete review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
-	successMsg := map[string]interface{}{
+	successMsg := map[string]any{
 		"message":    "Successfully deleted review",
 		"review_id":  int64(reviewID),
 		"pr_index":   index,
@@ -795,11 +795,11 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 	log.Debugf("Called DismissPullRequestReviewFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -807,7 +807,7 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 	}
 	reviewID, ok := req.GetArguments()["review_id"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("review_id is required"))
+		return to.ErrorResult(errors.New("review_id is required"))
 	}
 
 	opt := gitea_sdk.DismissPullReviewOptions{}
@@ -825,7 +825,7 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 		return to.ErrorResult(fmt.Errorf("dismiss review %v for %v/%v/pr/%v err: %v", int64(reviewID), owner, repo, index, err))
 	}
 
-	successMsg := map[string]interface{}{
+	successMsg := map[string]any{
 		"message":    "Successfully dismissed review",
 		"review_id":  int64(reviewID),
 		"pr_index":   index,
@@ -839,15 +839,15 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	log.Debugf("Called MergePullRequestFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, ok := req.GetArguments()["index"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+		return to.ErrorResult(errors.New("index is required"))
 	}
 
 	mergeStyle := "merge"
@@ -889,7 +889,7 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v returned merged=false", owner, repo, int64(index)))
 	}
 
-	successMsg := map[string]interface{}{
+	successMsg := map[string]any{
 		"merged":         merged,
 		"pr_index":       int64(index),
 		"repository":     fmt.Sprintf("%s/%s", owner, repo),
@@ -904,15 +904,15 @@ func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	log.Debugf("Called EditPullRequestFn")
 	owner, ok := req.GetArguments()["owner"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("owner is required"))
+		return to.ErrorResult(errors.New("owner is required"))
 	}
 	repo, ok := req.GetArguments()["repo"].(string)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("repo is required"))
+		return to.ErrorResult(errors.New("repo is required"))
 	}
 	index, ok := req.GetArguments()["index"].(float64)
 	if !ok {
-		return to.ErrorResult(fmt.Errorf("index is required"))
+		return to.ErrorResult(errors.New("index is required"))
 	}
 
 	opt := gitea_sdk.EditPullRequestOption{}
@@ -921,7 +921,7 @@ func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		opt.Title = title
 	}
 	if body, ok := req.GetArguments()["body"].(string); ok {
-		opt.Body = ptr.To(body)
+		opt.Body = new(body)
 	}
 	if base, ok := req.GetArguments()["base"].(string); ok {
 		opt.Base = base
@@ -930,7 +930,7 @@ func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		opt.Assignee = assignee
 	}
 	if assigneesArg, exists := req.GetArguments()["assignees"]; exists {
-		if assigneesSlice, ok := assigneesArg.([]interface{}); ok {
+		if assigneesSlice, ok := assigneesArg.([]any); ok {
 			var assignees []string
 			for _, a := range assigneesSlice {
 				if s, ok := a.(string); ok {
@@ -944,10 +944,10 @@ func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		opt.Milestone = int64(milestone)
 	}
 	if state, ok := req.GetArguments()["state"].(string); ok {
-		opt.State = ptr.To(gitea_sdk.StateType(state))
+		opt.State = new(gitea_sdk.StateType(state))
 	}
 	if allowMaintainerEdit, ok := req.GetArguments()["allow_maintainer_edit"].(bool); ok {
-		opt.AllowMaintainerEdit = ptr.To(allowMaintainerEdit)
+		opt.AllowMaintainerEdit = new(allowMaintainerEdit)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)

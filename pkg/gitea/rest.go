@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +41,7 @@ func tokenFromContext(ctx context.Context) string {
 func newRESTHTTPClient() *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if flag.Insecure {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // user-requested insecure mode
 	}
 	return &http.Client{
 		Transport: transport,
@@ -51,7 +52,7 @@ func newRESTHTTPClient() *http.Client {
 func buildAPIURL(path string, query url.Values) (string, error) {
 	host := strings.TrimRight(flag.Host, "/")
 	if host == "" {
-		return "", fmt.Errorf("gitea host is empty")
+		return "", errors.New("gitea host is empty")
 	}
 	p := strings.TrimLeft(path, "/")
 	u, err := url.Parse(fmt.Sprintf("%s/api/v1/%s", host, p))
@@ -66,7 +67,7 @@ func buildAPIURL(path string, query url.Values) (string, error) {
 
 // DoJSON performs an API request and decodes a JSON response into respOut (if non-nil).
 // It returns the HTTP status code.
-func DoJSON(ctx context.Context, method, path string, query url.Values, body any, respOut any) (int, error) {
+func DoJSON(ctx context.Context, method, path string, query url.Values, body, respOut any) (int, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -87,7 +88,7 @@ func DoJSON(ctx context.Context, method, path string, query url.Values, body any
 
 	token := tokenFromContext(ctx)
 	if token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("token %s", token))
+		req.Header.Set("Authorization", "token "+token)
 	}
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
@@ -107,7 +108,7 @@ func DoJSON(ctx context.Context, method, path string, query url.Values, body any
 	}
 
 	if respOut == nil {
-		io.Copy(io.Discard, resp.Body) // best-effort
+		_, _ = io.Copy(io.Discard, resp.Body) // best-effort
 		return resp.StatusCode, nil
 	}
 
@@ -140,7 +141,7 @@ func DoBytes(ctx context.Context, method, path string, query url.Values, body an
 
 	token := tokenFromContext(ctx)
 	if token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("token %s", token))
+		req.Header.Set("Authorization", "token "+token)
 	}
 	if accept != "" {
 		req.Header.Set("Accept", accept)
@@ -171,5 +172,3 @@ func DoBytes(ctx context.Context, method, path string, query url.Values, body an
 
 	return respBytes, resp.StatusCode, nil
 }
-
-

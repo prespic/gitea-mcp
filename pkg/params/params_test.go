@@ -8,7 +8,7 @@ import (
 func TestGetIndex(t *testing.T) {
 	tests := []struct {
 		name      string
-		args      map[string]interface{}
+		args      map[string]any
 		key       string
 		wantIndex int64
 		wantErr   bool
@@ -16,63 +16,63 @@ func TestGetIndex(t *testing.T) {
 	}{
 		{
 			name:      "valid float64",
-			args:      map[string]interface{}{"index": float64(123)},
+			args:      map[string]any{"index": float64(123)},
 			key:       "index",
 			wantIndex: 123,
 			wantErr:   false,
 		},
 		{
 			name:      "valid string",
-			args:      map[string]interface{}{"index": "456"},
+			args:      map[string]any{"index": "456"},
 			key:       "index",
 			wantIndex: 456,
 			wantErr:   false,
 		},
 		{
 			name:      "valid string with large number",
-			args:      map[string]interface{}{"index": "999999"},
+			args:      map[string]any{"index": "999999"},
 			key:       "index",
 			wantIndex: 999999,
 			wantErr:   false,
 		},
 		{
 			name:    "missing parameter",
-			args:    map[string]interface{}{},
+			args:    map[string]any{},
 			key:     "index",
 			wantErr: true,
 			errMsg:  "index is required",
 		},
 		{
 			name:    "invalid string (not a number)",
-			args:    map[string]interface{}{"index": "abc"},
+			args:    map[string]any{"index": "abc"},
 			key:     "index",
 			wantErr: true,
 			errMsg:  "must be a valid integer",
 		},
 		{
 			name:    "invalid string (decimal)",
-			args:    map[string]interface{}{"index": "12.34"},
+			args:    map[string]any{"index": "12.34"},
 			key:     "index",
 			wantErr: true,
 			errMsg:  "must be a valid integer",
 		},
 		{
 			name:    "invalid type (bool)",
-			args:    map[string]interface{}{"index": true},
+			args:    map[string]any{"index": true},
 			key:     "index",
 			wantErr: true,
 			errMsg:  "must be a number or numeric string",
 		},
 		{
 			name:    "invalid type (map)",
-			args:    map[string]interface{}{"index": map[string]string{"foo": "bar"}},
+			args:    map[string]any{"index": map[string]string{"foo": "bar"}},
 			key:     "index",
 			wantErr: true,
 			errMsg:  "must be a number or numeric string",
 		},
 		{
 			name:      "custom key name",
-			args:      map[string]interface{}{"pr_index": "789"},
+			args:      map[string]any{"pr_index": "789"},
 			key:       "pr_index",
 			wantIndex: 789,
 			wantErr:   false,
