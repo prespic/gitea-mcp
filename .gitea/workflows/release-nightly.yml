@@ -14,7 +14,7 @@ jobs:
       DOCKER_LATEST: nightly
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # all history for all branches and tags
 
@@ -37,7 +37,7 @@ jobs:
           echo REPO_VERSION=$(git describe --tags --always | sed 's/-/+/' | sed 's/^v//') >> $GITHUB_OUTPUT
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
