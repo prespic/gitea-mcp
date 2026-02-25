@@ -182,7 +182,8 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
 		mcp.WithString("merge_style", mcp.Description("merge style: merge, rebase, rebase-merge, squash, fast-forward-only"), mcp.Enum("merge", "rebase", "rebase-merge", "squash", "fast-forward-only"), mcp.DefaultString("merge")),
-		mcp.WithString("message", mcp.Description("custom merge commit message (optional)")),
+		mcp.WithString("title", mcp.Description("custom merge commit title")),
+		mcp.WithString("message", mcp.Description("custom merge commit message")),
 		mcp.WithBoolean("delete_branch", mcp.Description("delete the branch after merge"), mcp.DefaultBool(false)),
 	)
 
@@ -845,14 +846,19 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	index, ok := req.GetArguments()["index"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("index is required"))
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	mergeStyle := "merge"
 	if style, exists := req.GetArguments()["merge_style"].(string); exists && style != "" {
 		mergeStyle = style
+	}
+
+	title := ""
+	if t, exists := req.GetArguments()["title"].(string); exists {
+		title = t
 	}
 
 	message := ""
@@ -872,26 +878,27 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 	opt := gitea_sdk.MergePullRequestOption{
 		Style:                  gitea_sdk.MergeStyle(mergeStyle),
+		Title:                  title,
 		Message:                message,
 		DeleteBranchAfterMerge: deleteBranch,
 	}
 
-	merged, resp, err := client.MergePullRequest(owner, repo, int64(index), opt)
+	merged, resp, err := client.MergePullRequest(owner, repo, index, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v err: %v", owner, repo, int64(index), err))
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
 	if !merged && resp != nil && resp.StatusCode >= 400 {
-		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v failed: HTTP %d %s", owner, repo, int64(index), resp.StatusCode, resp.Status))
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v failed: HTTP %d %s", owner, repo, index, resp.StatusCode, resp.Status))
 	}
 
 	if !merged {
-		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v returned merged=false", owner, repo, int64(index)))
+		return to.ErrorResult(fmt.Errorf("merge %v/%v/pr/%v returned merged=false", owner, repo, index))
 	}
 
 	successMsg := map[string]any{
 		"merged":         merged,
-		"pr_index":       int64(index),
+		"pr_index":       index,
 		"repository":     fmt.Sprintf("%s/%s", owner, repo),
 		"merge_style":    mergeStyle,
 		"branch_deleted": deleteBranch,
