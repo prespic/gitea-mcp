@@ -67,20 +67,24 @@ func RegisterTool(s *server.MCPServer) {
 	s.DeleteTools("")
 }
 
-// parseBearerToken extracts the Bearer token from an Authorization header.
+// parseAuthToken extracts the token from an Authorization header.
+// Supports "Bearer <token>" (case-insensitive per RFC 7235) and
+// Gitea-style "token <token>" formats.
 // Returns the token and true if valid, empty string and false otherwise.
-func parseBearerToken(authHeader string) (string, bool) {
-	const bearerPrefix = "Bearer "
-	if len(authHeader) < len(bearerPrefix) || !strings.HasPrefix(authHeader, bearerPrefix) {
-		return "", false
+func parseAuthToken(authHeader string) (string, bool) {
+	if len(authHeader) > 7 && strings.EqualFold(authHeader[:7], "Bearer ") {
+		token := strings.TrimSpace(authHeader[7:])
+		if token != "" {
+			return token, true
+		}
 	}
-
-	token := strings.TrimSpace(authHeader[len(bearerPrefix):])
-	if token == "" {
-		return "", false
+	if len(authHeader) > 6 && strings.EqualFold(authHeader[:6], "token ") {
+		token := strings.TrimSpace(authHeader[6:])
+		if token != "" {
+			return token, true
+		}
 	}
-
-	return token, true
+	return "", false
 }
 
 func getContextWithToken(ctx context.Context, r *http.Request) context.Context {
@@ -89,7 +93,7 @@ func getContextWithToken(ctx context.Context, r *http.Request) context.Context {
 		return ctx
 	}
 
-	token, ok := parseBearerToken(authHeader)
+	token, ok := parseAuthToken(authHeader)
 	if !ok {
 		return ctx
 	}

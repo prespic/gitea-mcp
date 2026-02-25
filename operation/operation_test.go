@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestParseBearerToken(t *testing.T) {
+func TestParseAuthToken(t *testing.T) {
 	tests := []struct {
 		name      string
 		header    string
@@ -12,9 +12,21 @@ func TestParseBearerToken(t *testing.T) {
 		wantOK    bool
 	}{
 		{
-			name:      "valid token",
+			name:      "valid Bearer token",
 			header:    "Bearer validtoken",
 			wantToken: "validtoken",
+			wantOK:    true,
+		},
+		{
+			name:      "lowercase bearer",
+			header:    "bearer lowercase",
+			wantToken: "lowercase",
+			wantOK:    true,
+		},
+		{
+			name:      "uppercase BEARER",
+			header:    "BEARER uppercase",
+			wantToken: "uppercase",
 			wantOK:    true,
 		},
 		{
@@ -22,12 +34,6 @@ func TestParseBearerToken(t *testing.T) {
 			header:    "Bearer   spacedToken ",
 			wantToken: "spacedToken",
 			wantOK:    true,
-		},
-		{
-			name:      "lowercase bearer should fail",
-			header:    "bearer lowercase",
-			wantToken: "",
-			wantOK:    false,
 		},
 		{
 			name:      "bearer with no token",
@@ -48,6 +54,24 @@ func TestParseBearerToken(t *testing.T) {
 			wantOK:    false,
 		},
 		{
+			name:      "Gitea token format",
+			header:    "token giteaapitoken",
+			wantToken: "giteaapitoken",
+			wantOK:    true,
+		},
+		{
+			name:      "Gitea Token format capitalized",
+			header:    "Token giteaapitoken",
+			wantToken: "giteaapitoken",
+			wantOK:    true,
+		},
+		{
+			name:      "token with no value",
+			header:    "token ",
+			wantToken: "",
+			wantOK:    false,
+		},
+		{
 			name:      "different auth type",
 			header:    "Basic dXNlcjpwYXNz",
 			wantToken: "",
@@ -60,7 +84,7 @@ func TestParseBearerToken(t *testing.T) {
 			wantOK:    false,
 		},
 		{
-			name:      "token with internal spaces",
+			name:      "bearer token with internal spaces",
 			header:    "Bearer token with spaces",
 			wantToken: "token with spaces",
 			wantOK:    true,
@@ -69,12 +93,12 @@ func TestParseBearerToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotToken, gotOK := parseBearerToken(tt.header)
+			gotToken, gotOK := parseAuthToken(tt.header)
 			if gotToken != tt.wantToken {
-				t.Errorf("parseBearerToken() token = %q, want %q", gotToken, tt.wantToken)
+				t.Errorf("parseAuthToken() token = %q, want %q", gotToken, tt.wantToken)
 			}
 			if gotOK != tt.wantOK {
-				t.Errorf("parseBearerToken() ok = %v, want %v", gotOK, tt.wantOK)
+				t.Errorf("parseAuthToken() ok = %v, want %v", gotOK, tt.wantOK)
 			}
 		})
 	}
