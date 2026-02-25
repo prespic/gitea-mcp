@@ -27,7 +27,7 @@ var (
 	SearchUsersTool = mcp.NewTool(
 		SearchUsersToolName,
 		mcp.WithDescription("search users"),
-		mcp.WithString("keyword", mcp.Description("Keyword")),
+		mcp.WithString("keyword", mcp.Required(), mcp.Description("Keyword")),
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
 		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(100)),
 	)
@@ -35,8 +35,8 @@ var (
 	SearOrgTeamsTool = mcp.NewTool(
 		SearchOrgTeamsToolName,
 		mcp.WithDescription("search organization teams"),
-		mcp.WithString("org", mcp.Description("organization name")),
-		mcp.WithString("query", mcp.Description("search organization teams")),
+		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
+		mcp.WithString("query", mcp.Required(), mcp.Description("search organization teams")),
 		mcp.WithBoolean("includeDescription", mcp.Description("include description?")),
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
 		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(100)),
@@ -45,7 +45,7 @@ var (
 	SearchReposTool = mcp.NewTool(
 		SearchReposToolName,
 		mcp.WithDescription("search repos"),
-		mcp.WithString("keyword", mcp.Description("Keyword")),
+		mcp.WithString("keyword", mcp.Required(), mcp.Description("Keyword")),
 		mcp.WithBoolean("keywordIsTopic", mcp.Description("KeywordIsTopic")),
 		mcp.WithBoolean("keywordInDescription", mcp.Description("KeywordInDescription")),
 		mcp.WithNumber("ownerID", mcp.Description("OwnerID")),
