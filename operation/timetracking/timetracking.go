@@ -207,7 +207,7 @@ func GetMyStopwatchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	stopwatches, _, err := client.GetMyStopwatches()
+	stopwatches, _, err := client.ListMyStopwatches(gitea_sdk.ListStopwatchesOptions{})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get stopwatches err: %v", err))
 	}
@@ -367,7 +367,7 @@ func GetMyTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	times, _, err := client.GetMyTrackedTimes()
+	times, _, err := client.ListMyTrackedTimes(gitea_sdk.ListTrackedTimesOptions{})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get tracked times err: %v", err))
 	}
