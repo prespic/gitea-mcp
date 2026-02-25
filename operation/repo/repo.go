@@ -7,6 +7,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -191,14 +192,8 @@ func ForkRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 
 func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListMyReposFn")
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	opt := gitea_sdk.ListReposOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),

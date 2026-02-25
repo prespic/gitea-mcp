@@ -7,6 +7,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -183,8 +184,8 @@ func ListTagsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 	if !ok {
 		return nil, errors.New("repo is required")
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 20)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {

@@ -218,14 +218,8 @@ func ListRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 
 	opt := gitea_sdk.ListLabelsOptions{
 		ListOptions: gitea_sdk.ListOptions{
@@ -254,18 +248,18 @@ func GetRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	label, _, err := client.GetRepoLabel(owner, repo, int64(id))
+	label, _, err := client.GetRepoLabel(owner, repo, id)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get %v/%v/label/%v err: %v", owner, repo, int64(id), err))
+		return to.ErrorResult(fmt.Errorf("get %v/%v/label/%v err: %v", owner, repo, id, err))
 	}
 	return to.TextResult(label)
 }
@@ -317,9 +311,9 @@ func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.EditLabelOption{}
@@ -337,9 +331,9 @@ func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	label, _, err := client.EditLabel(owner, repo, int64(id), opt)
+	label, _, err := client.EditLabel(owner, repo, id, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("edit %v/%v/label/%v err: %v", owner, repo, int64(id), err))
+		return to.ErrorResult(fmt.Errorf("edit %v/%v/label/%v err: %v", owner, repo, id, err))
 	}
 	return to.TextResult(label)
 }
@@ -354,18 +348,18 @@ func DeleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteLabel(owner, repo, int64(id))
+	_, err = client.DeleteLabel(owner, repo, id)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete %v/%v/label/%v err: %v", owner, repo, int64(id), err))
+		return to.ErrorResult(fmt.Errorf("delete %v/%v/label/%v err: %v", owner, repo, id, err))
 	}
 	return to.TextResult("Label deleted successfully")
 }
@@ -390,8 +384,8 @@ func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	}
 	var labels []int64
 	for _, l := range labelsRaw {
-		if labelID, ok := l.(float64); ok {
-			labels = append(labels, int64(labelID))
+		if labelID, ok := params.ToInt64(l); ok {
+			labels = append(labels, labelID)
 		} else {
 			return to.ErrorResult(errors.New("invalid label ID in labels array"))
 		}
@@ -432,8 +426,8 @@ func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	}
 	var labels []int64
 	for _, l := range labelsRaw {
-		if labelID, ok := l.(float64); ok {
-			labels = append(labels, int64(labelID))
+		if labelID, ok := params.ToInt64(l); ok {
+			labels = append(labels, labelID)
 		} else {
 			return to.ErrorResult(errors.New("invalid label ID in labels array"))
 		}
@@ -494,18 +488,18 @@ func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	labelID, ok := req.GetArguments()["label_id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	labelID, err := params.GetIndex(req.GetArguments(), "label_id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteIssueLabel(owner, repo, index, int64(labelID))
+	_, err = client.DeleteIssueLabel(owner, repo, index, labelID)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", int64(labelID), owner, repo, index, err))
+		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", labelID, owner, repo, index, err))
 	}
 	return to.TextResult("Label removed successfully")
 }
@@ -516,14 +510,8 @@ func ListOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if !ok {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 
 	opt := gitea_sdk.ListOrgLabelsOptions{
 		ListOptions: gitea_sdk.ListOptions{
@@ -583,9 +571,9 @@ func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if !ok {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.EditOrgLabelOption{}
@@ -606,9 +594,9 @@ func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	label, _, err := client.EditOrgLabel(org, int64(id), opt)
+	label, _, err := client.EditOrgLabel(org, id, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("edit %v/labels/%v err: %v", org, int64(id), err))
+		return to.ErrorResult(fmt.Errorf("edit %v/labels/%v err: %v", org, id, err))
 	}
 	return to.TextResult(label)
 }
@@ -619,18 +607,18 @@ func DeleteOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("label ID is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteOrgLabel(org, int64(id))
+	_, err = client.DeleteOrgLabel(org, id)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete %v/labels/%v err: %v", org, int64(id), err))
+		return to.ErrorResult(fmt.Errorf("delete %v/labels/%v err: %v", org, id, err))
 	}
 	return to.TextResult("Label deleted successfully")
 }

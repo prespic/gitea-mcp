@@ -11,6 +11,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -116,22 +117,12 @@ func GetRepoActionJobLogPreviewFn(ctx context.Context, req mcp.CallToolRequest) 
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	jobIDFloat, ok := req.GetArguments()["job_id"].(float64)
-	if !ok || jobIDFloat <= 0 {
+	jobID, err := params.GetIndex(req.GetArguments(), "job_id")
+	if err != nil || jobID <= 0 {
 		return to.ErrorResult(errors.New("job_id is required"))
 	}
-	tailLinesFloat, _ := req.GetArguments()["tail_lines"].(float64)
-	maxBytesFloat, _ := req.GetArguments()["max_bytes"].(float64)
-	tailLines := int(tailLinesFloat)
-	if tailLines <= 0 {
-		tailLines = 200
-	}
-	maxBytes := int(maxBytesFloat)
-	if maxBytes <= 0 {
-		maxBytes = 65536
-	}
-
-	jobID := int64(jobIDFloat)
+	tailLines := int(params.GetOptionalInt(req.GetArguments(), "tail_lines", 200))
+	maxBytes := int(params.GetOptionalInt(req.GetArguments(), "max_bytes", 65536))
 	raw, usedPath, err := fetchJobLogBytes(ctx, owner, repo, jobID)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get job log err: %v", err))
@@ -161,12 +152,11 @@ func DownloadRepoActionJobLogFn(ctx context.Context, req mcp.CallToolRequest) (*
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	jobIDFloat, ok := req.GetArguments()["job_id"].(float64)
-	if !ok || jobIDFloat <= 0 {
+	jobID, err := params.GetIndex(req.GetArguments(), "job_id")
+	if err != nil || jobID <= 0 {
 		return to.ErrorResult(errors.New("job_id is required"))
 	}
 	outputPath, _ := req.GetArguments()["output_path"].(string)
-	jobID := int64(jobIDFloat)
 
 	raw, usedPath, err := fetchJobLogBytes(ctx, owner, repo, jobID)
 	if err != nil {

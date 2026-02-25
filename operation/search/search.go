@@ -7,6 +7,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -79,14 +80,8 @@ func UsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	if !ok {
 		return to.ErrorResult(errors.New("keyword is required"))
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	opt := gitea_sdk.SearchUsersOption{
 		KeyWord: keyword,
 		ListOptions: gitea_sdk.ListOptions{
@@ -116,14 +111,8 @@ func OrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 		return to.ErrorResult(errors.New("query is required"))
 	}
 	includeDescription, _ := req.GetArguments()["includeDescription"].(bool)
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	opt := gitea_sdk.SearchTeamsOptions{
 		Query:              query,
 		IncludeDescription: includeDescription,
@@ -151,7 +140,7 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	}
 	keywordIsTopic, _ := req.GetArguments()["keywordIsTopic"].(bool)
 	keywordInDescription, _ := req.GetArguments()["keywordInDescription"].(bool)
-	ownerID, _ := req.GetArguments()["ownerID"].(float64)
+	ownerID := params.GetOptionalInt(req.GetArguments(), "ownerID", 0)
 	var pIsPrivate *bool
 	isPrivate, ok := req.GetArguments()["isPrivate"].(bool)
 	if ok {
@@ -164,19 +153,13 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	}
 	sort, _ := req.GetArguments()["sort"].(string)
 	order, _ := req.GetArguments()["order"].(string)
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	opt := gitea_sdk.SearchRepoOptions{
 		Keyword:              keyword,
 		KeywordIsTopic:       keywordIsTopic,
 		KeywordInDescription: keywordInDescription,
-		OwnerID:              int64(ownerID),
+		OwnerID:              ownerID,
 		IsPrivate:            pIsPrivate,
 		IsArchived:           pIsArchived,
 		Sort:                 sort,

@@ -5,6 +5,63 @@ import (
 	"testing"
 )
 
+func TestToInt64(t *testing.T) {
+	tests := []struct {
+		name string
+		val  any
+		want int64
+		ok   bool
+	}{
+		{"float64", float64(42), 42, true},
+		{"float64 zero", float64(0), 0, true},
+		{"float64 negative", float64(-5), -5, true},
+		{"string", "123", 123, true},
+		{"string zero", "0", 0, true},
+		{"string negative", "-10", -10, true},
+		{"invalid string", "abc", 0, false},
+		{"decimal string", "1.5", 0, false},
+		{"bool", true, 0, false},
+		{"nil", nil, 0, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := ToInt64(tt.val)
+			if ok != tt.ok {
+				t.Errorf("ToInt64() ok = %v, want %v", ok, tt.ok)
+			}
+			if got != tt.want {
+				t.Errorf("ToInt64() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetOptionalInt(t *testing.T) {
+	tests := []struct {
+		name       string
+		args       map[string]any
+		key        string
+		defaultVal int64
+		want       int64
+	}{
+		{"present float64", map[string]any{"page": float64(3)}, "page", 1, 3},
+		{"present string", map[string]any{"page": "5"}, "page", 1, 5},
+		{"missing key", map[string]any{}, "page", 1, 1},
+		{"invalid string", map[string]any{"page": "abc"}, "page", 1, 1},
+		{"invalid type", map[string]any{"page": true}, "page", 1, 1},
+		{"zero value", map[string]any{"id": float64(0)}, "id", 99, 0},
+		{"string zero", map[string]any{"id": "0"}, "id", 99, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetOptionalInt(tt.args, tt.key, tt.defaultVal)
+			if got != tt.want {
+				t.Errorf("GetOptionalInt() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestGetIndex(t *testing.T) {
 	tests := []struct {
 		name      string

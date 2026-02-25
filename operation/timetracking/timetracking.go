@@ -233,14 +233,8 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
@@ -276,16 +270,16 @@ func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 		return to.ErrorResult(err)
 	}
 
-	timeSeconds, ok := req.GetArguments()["time"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("time is required"))
+	timeSeconds, err := params.GetIndex(req.GetArguments(), "time")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 	trackedTime, _, err := client.AddTime(owner, repo, index, gitea_sdk.AddTimeOption{
-		Time: int64(timeSeconds),
+		Time: timeSeconds,
 	})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("add tracked time to %s/%s#%d err: %v", owner, repo, index, err))
@@ -308,19 +302,19 @@ func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("id is required"))
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteTime(owner, repo, index, int64(id))
+	_, err = client.DeleteTime(owner, repo, index, id)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("delete tracked time %d from %s/%s#%d err: %v", int64(id), owner, repo, index, err))
+		return to.ErrorResult(fmt.Errorf("delete tracked time %d from %s/%s#%d err: %v", id, owner, repo, index, err))
 	}
-	return to.TextResult(fmt.Sprintf("Tracked time entry %d deleted from issue %s/%s#%d", int64(id), owner, repo, index))
+	return to.TextResult(fmt.Sprintf("Tracked time entry %d deleted from issue %s/%s#%d", id, owner, repo, index))
 }
 
 func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -334,14 +328,8 @@ func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 		return to.ErrorResult(errors.New("repo is required"))
 	}
 
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))

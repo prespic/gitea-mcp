@@ -6,6 +6,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -68,11 +69,11 @@ func registerTools() {
 // getIntArg parses an integer argument from the MCP request arguments map.
 // Returns def if missing, not a number, or less than 1. Used for pagination arguments.
 func getIntArg(req mcp.CallToolRequest, name string, def int) int {
-	val, ok := req.GetArguments()[name].(float64)
-	if !ok || val < 1 {
+	v := params.GetOptionalInt(req.GetArguments(), name, int64(def))
+	if v < 1 {
 		return def
 	}
-	return int(val)
+	return int(v)
 }
 
 // GetUserInfoFn is the handler for "get_my_user_info" MCP tool requests.

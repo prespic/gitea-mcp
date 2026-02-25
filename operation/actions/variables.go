@@ -9,6 +9,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -139,14 +140,8 @@ func ListRepoActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 
 	query := url.Values{}
 	query.Set("page", strconv.Itoa(int(page)))
@@ -278,14 +273,8 @@ func ListOrgActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 	if !ok || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {

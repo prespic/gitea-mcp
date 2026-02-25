@@ -8,6 +8,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -163,16 +164,16 @@ func DeleteReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if !ok {
 		return nil, errors.New("repo is required")
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return nil, errors.New("id is required")
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	_, err = client.DeleteRelease(owner, repo, int64(id))
+	_, err = client.DeleteRelease(owner, repo, id)
 	if err != nil {
 		return nil, fmt.Errorf("delete release error: %v", err)
 	}
@@ -190,16 +191,16 @@ func GetReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	if !ok {
 		return nil, errors.New("repo is required")
 	}
-	id, ok := req.GetArguments()["id"].(float64)
-	if !ok {
-		return nil, errors.New("id is required")
+	id, err := params.GetIndex(req.GetArguments(), "id")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	release, _, err := client.GetRelease(owner, repo, int64(id))
+	release, _, err := client.GetRelease(owner, repo, id)
 	if err != nil {
 		return nil, fmt.Errorf("get release error: %v", err)
 	}
@@ -250,8 +251,8 @@ func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if ok {
 		pIsPreRelease = new(isPreRelease)
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 20)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {

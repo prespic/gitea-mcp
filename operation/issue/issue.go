@@ -167,14 +167,8 @@ func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		state = "all"
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		page = 1
-	}
-	pageSize, ok := req.GetArguments()["pageSize"].(float64)
-	if !ok {
-		pageSize = 100
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
 	opt := gitea_sdk.ListIssueOption{
 		State: gitea_sdk.StateType(state),
 		ListOptions: gitea_sdk.ListOptions{
@@ -295,9 +289,10 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 		}
 	}
 	opt.Assignees = assignees
-	milestone, ok := req.GetArguments()["milestone"].(float64)
-	if ok {
-		opt.Milestone = new(int64(milestone))
+	if val, exists := req.GetArguments()["milestone"]; exists {
+		if milestone, ok := params.ToInt64(val); ok {
+			opt.Milestone = new(milestone)
+		}
 	}
 	state, ok := req.GetArguments()["state"].(string)
 	if ok {
@@ -326,9 +321,9 @@ func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	commentID, ok := req.GetArguments()["commentID"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("comment ID is required"))
+	commentID, err := params.GetIndex(req.GetArguments(), "commentID")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	body, ok := req.GetArguments()["body"].(string)
 	if !ok {
@@ -341,9 +336,9 @@ func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issueComment, _, err := client.EditIssueComment(owner, repo, int64(commentID), opt)
+	issueComment, _, err := client.EditIssueComment(owner, repo, commentID, opt)
 	if err != nil {
-		return to.ErrorResult(fmt.Errorf("edit %v/%v/issues/comments/%v err: %v", owner, repo, int64(commentID), err))
+		return to.ErrorResult(fmt.Errorf("edit %v/%v/issues/comments/%v err: %v", owner, repo, commentID, err))
 	}
 
 	return to.TextResult(issueComment)

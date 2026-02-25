@@ -11,6 +11,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -155,14 +156,8 @@ func ListRepoActionWorkflowsFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 50
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 50)
 	query := url.Values{}
 	query.Set("page", strconv.Itoa(int(page)))
 	query.Set("limit", strconv.Itoa(int(pageSize)))
@@ -271,14 +266,8 @@ func ListRepoActionRunsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 50
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 50)
 	statusFilter, _ := req.GetArguments()["status"].(string)
 
 	query := url.Values{}
@@ -311,15 +300,15 @@ func GetRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	runID, ok := req.GetArguments()["run_id"].(float64)
-	if !ok || runID <= 0 {
+	runID, err := params.GetIndex(req.GetArguments(), "run_id")
+	if err != nil || runID <= 0 {
 		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
 	var result any
-	err := doJSONWithFallback(ctx, "GET",
+	err = doJSONWithFallback(ctx, "GET",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/runs/%d", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
+			fmt.Sprintf("repos/%s/%s/actions/runs/%d", url.PathEscape(owner), url.PathEscape(repo), runID),
 		},
 		nil, nil, &result,
 	)
@@ -339,14 +328,14 @@ func CancelRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	runID, ok := req.GetArguments()["run_id"].(float64)
-	if !ok || runID <= 0 {
+	runID, err := params.GetIndex(req.GetArguments(), "run_id")
+	if err != nil || runID <= 0 {
 		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
-	err := doJSONWithFallback(ctx, "POST",
+	err = doJSONWithFallback(ctx, "POST",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/runs/%d/cancel", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
+			fmt.Sprintf("repos/%s/%s/actions/runs/%d/cancel", url.PathEscape(owner), url.PathEscape(repo), runID),
 		},
 		nil, nil, nil,
 	)
@@ -366,15 +355,15 @@ func RerunRepoActionRunFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	runID, ok := req.GetArguments()["run_id"].(float64)
-	if !ok || runID <= 0 {
+	runID, err := params.GetIndex(req.GetArguments(), "run_id")
+	if err != nil || runID <= 0 {
 		return to.ErrorResult(errors.New("run_id is required"))
 	}
 
-	err := doJSONWithFallback(ctx, "POST",
+	err = doJSONWithFallback(ctx, "POST",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
-			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun-failed-jobs", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
+			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun", url.PathEscape(owner), url.PathEscape(repo), runID),
+			fmt.Sprintf("repos/%s/%s/actions/runs/%d/rerun-failed-jobs", url.PathEscape(owner), url.PathEscape(repo), runID),
 		},
 		nil, nil, nil,
 	)
@@ -398,14 +387,8 @@ func ListRepoActionJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 50
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 50)
 	statusFilter, _ := req.GetArguments()["status"].(string)
 
 	query := url.Values{}
@@ -438,27 +421,21 @@ func ListRepoActionRunJobsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	if !ok || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	runID, ok := req.GetArguments()["run_id"].(float64)
-	if !ok || runID <= 0 {
+	runID, err := params.GetIndex(req.GetArguments(), "run_id")
+	if err != nil || runID <= 0 {
 		return to.ErrorResult(errors.New("run_id is required"))
 	}
-	page, _ := req.GetArguments()["page"].(float64)
-	if page <= 0 {
-		page = 1
-	}
-	pageSize, _ := req.GetArguments()["pageSize"].(float64)
-	if pageSize <= 0 {
-		pageSize = 50
-	}
+	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
+	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 50)
 
 	query := url.Values{}
 	query.Set("page", strconv.Itoa(int(page)))
 	query.Set("limit", strconv.Itoa(int(pageSize)))
 
 	var result any
-	err := doJSONWithFallback(ctx, "GET",
+	err = doJSONWithFallback(ctx, "GET",
 		[]string{
-			fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", url.PathEscape(owner), url.PathEscape(repo), int64(runID)),
+			fmt.Sprintf("repos/%s/%s/actions/runs/%d/jobs", url.PathEscape(owner), url.PathEscape(repo), runID),
 		},
 		query, nil, &result,
 	)

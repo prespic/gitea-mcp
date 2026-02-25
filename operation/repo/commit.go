@@ -7,6 +7,7 @@ import (
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -46,13 +47,13 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if !ok {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page, ok := req.GetArguments()["page"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("page is required"))
+	page, err := params.GetIndex(req.GetArguments(), "page")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	pageSize, ok := req.GetArguments()["page_size"].(float64)
-	if !ok {
-		return to.ErrorResult(errors.New("page_size is required"))
+	pageSize, err := params.GetIndex(req.GetArguments(), "page_size")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	sha, _ := req.GetArguments()["sha"].(string)
 	path, _ := req.GetArguments()["path"].(string)
