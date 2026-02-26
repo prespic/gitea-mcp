@@ -3,7 +3,9 @@ package cmd
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
+	"text/tabwriter"
 
 	"gitea.com/gitea/gitea-mcp/operation"
 	flagPkg "gitea.com/gitea/gitea-mcp/pkg/flag"
@@ -11,60 +13,53 @@ import (
 )
 
 var (
-	host  string
-	port  int
-	token string
+	host    string
+	port    int
+	token   string
+	version bool
 )
 
 func init() {
-	flag.StringVar(
-		&flagPkg.Mode,
-		"t",
-		"stdio",
-		"Transport type (stdio or http)",
-	)
-	flag.StringVar(
-		&flagPkg.Mode,
-		"transport",
-		"stdio",
-		"Transport type (stdio or http)",
-	)
-	flag.StringVar(
-		&host,
-		"host",
-		os.Getenv("GITEA_HOST"),
-		"Gitea host",
-	)
-	flag.IntVar(
-		&port,
-		"port",
-		8080,
-		"http port",
-	)
-	flag.StringVar(
-		&token,
-		"token",
-		"",
-		"Your personal access token",
-	)
-	flag.BoolVar(
-		&flagPkg.ReadOnly,
-		"read-only",
-		false,
-		"Read-only mode",
-	)
-	flag.BoolVar(
-		&flagPkg.Debug,
-		"d",
-		false,
-		"debug mode (If -d flag is provided, debug mode will be enabled by default)",
-	)
-	flag.BoolVar(
-		&flagPkg.Insecure,
-		"insecure",
-		false,
-		"ignore TLS certificate errors",
-	)
+	flag.StringVar(&flagPkg.Mode, "t", "stdio", "")
+	flag.StringVar(&flagPkg.Mode, "transport", "stdio", "")
+	flag.StringVar(&host, "H", os.Getenv("GITEA_HOST"), "")
+	flag.StringVar(&host, "host", os.Getenv("GITEA_HOST"), "")
+	flag.IntVar(&port, "p", 8080, "")
+	flag.IntVar(&port, "port", 8080, "")
+	flag.StringVar(&token, "T", "", "")
+	flag.StringVar(&token, "token", "", "")
+	flag.BoolVar(&flagPkg.ReadOnly, "r", false, "")
+	flag.BoolVar(&flagPkg.ReadOnly, "read-only", false, "")
+	flag.BoolVar(&flagPkg.Debug, "d", false, "")
+	flag.BoolVar(&flagPkg.Debug, "debug", false, "")
+	flag.BoolVar(&flagPkg.Insecure, "k", false, "")
+	flag.BoolVar(&flagPkg.Insecure, "insecure", false, "")
+	flag.BoolVar(&version, "v", false, "")
+	flag.BoolVar(&version, "version", false, "")
+
+	flag.Usage = func() {
+		w := tabwriter.NewWriter(os.Stderr, 0, 0, 3, ' ', 0)
+		fmt.Fprintln(os.Stderr, "Usage: gitea-mcp [options]")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Options:")
+		fmt.Fprintf(w, "  -t, -transport <type>\tTransport type: stdio or http (default: stdio)\n")
+		fmt.Fprintf(w, "  -H, -host <url>\tGitea host URL (default: https://gitea.com)\n")
+		fmt.Fprintf(w, "  -p, -port <number>\tHTTP server port (default: 8080)\n")
+		fmt.Fprintf(w, "  -T, -token <token>\tPersonal access token\n")
+		fmt.Fprintf(w, "  -r, -read-only\tExpose only read-only tools\n")
+		fmt.Fprintf(w, "  -d, -debug\tEnable debug mode\n")
+		fmt.Fprintf(w, "  -k, -insecure\tIgnore TLS certificate errors\n")
+		fmt.Fprintf(w, "  -v, -version\tPrint version and exit\n")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "Environment variables:")
+		fmt.Fprintf(w, "  GITEA_ACCESS_TOKEN\tProvide access token\n")
+		fmt.Fprintf(w, "  GITEA_DEBUG\tSet to 'true' for debug mode\n")
+		fmt.Fprintf(w, "  GITEA_HOST\tOverride Gitea host URL\n")
+		fmt.Fprintf(w, "  GITEA_INSECURE\tSet to 'true' to ignore TLS errors\n")
+		fmt.Fprintf(w, "  GITEA_READONLY\tSet to 'true' for read-only mode\n")
+		fmt.Fprintf(w, "  MCP_MODE\tOverride transport mode\n")
+		w.Flush()
+	}
 
 	flag.Parse()
 
@@ -99,6 +94,10 @@ func init() {
 }
 
 func Execute() {
+	if version {
+		fmt.Fprintln(os.Stdout, flagPkg.Version)
+		return
+	}
 	defer log.Default().Sync() //nolint:errcheck // best-effort flush
 	if err := operation.Run(); err != nil {
 		if err == context.Canceled {
