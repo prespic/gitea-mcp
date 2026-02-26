@@ -17,13 +17,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: stable
+      - name: Install GoReleaser
+        run: go install github.com/goreleaser/goreleaser/v2@latest
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
-        with:
-          distribution: goreleaser
-          # 'latest', 'nightly', or a semver
-          version: "~> v2"
-          args: release --clean
+        run: goreleaser release --clean
         env:
           GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_FORCE_TOKEN: "gitea"
