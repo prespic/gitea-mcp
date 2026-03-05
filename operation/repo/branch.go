@@ -2,11 +2,11 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -63,19 +63,20 @@ func init() {
 
 func CreateBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateBranchFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	branch, ok := req.GetArguments()["branch"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("branch is required"))
+	branch, err := params.GetString(args, "branch")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	oldBranch, _ := req.GetArguments()["old_branch"].(string)
+	oldBranch, _ := args["old_branch"].(string)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -94,17 +95,18 @@ func CreateBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 
 func DeleteBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteBranchFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	branch, ok := req.GetArguments()["branch"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("branch is required"))
+	branch, err := params.GetString(args, "branch")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -120,18 +122,19 @@ func DeleteBranchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 
 func ListBranchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListBranchesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	opt := gitea_sdk.ListRepoBranchesOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     1,
-			PageSize: 100,
+			PageSize: 30,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -143,5 +146,5 @@ func ListBranchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 		return to.ErrorResult(fmt.Errorf("list branches error: %v", err))
 	}
 
-	return to.TextResult(branches)
+	return to.TextResult(slimBranches(branches))
 }

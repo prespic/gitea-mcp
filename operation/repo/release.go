@@ -2,9 +2,7 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -96,44 +94,32 @@ func init() {
 	})
 }
 
-// To avoid return too many tokens, we need to provide at least information as possible
-// llm can call get release to get more information
-type ListReleaseResult struct {
-	ID           int64     `json:"id"`
-	TagName      string    `json:"tag_name"`
-	Target       string    `json:"target_commitish"`
-	Title        string    `json:"title"`
-	IsDraft      bool      `json:"draft"`
-	IsPrerelease bool      `json:"prerelease"`
-	CreatedAt    time.Time `json:"created_at"`
-	PublishedAt  time.Time `json:"published_at"`
-}
-
 func CreateReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateReleasesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	tagName, ok := req.GetArguments()["tag_name"].(string)
-	if !ok {
-		return nil, errors.New("tag_name is required")
+	tagName, err := params.GetString(args, "tag_name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	target, ok := req.GetArguments()["target"].(string)
-	if !ok {
-		return nil, errors.New("target is required")
+	target, err := params.GetString(args, "target")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	title, ok := req.GetArguments()["title"].(string)
-	if !ok {
-		return nil, errors.New("title is required")
+	title, err := params.GetString(args, "title")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	isDraft, _ := req.GetArguments()["is_draft"].(bool)
-	isPreRelease, _ := req.GetArguments()["is_pre_release"].(bool)
-	body, _ := req.GetArguments()["body"].(string)
+	isDraft, _ := args["is_draft"].(bool)
+	isPreRelease, _ := args["is_pre_release"].(bool)
+	body, _ := args["body"].(string)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -156,15 +142,16 @@ func CreateReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 
 func DeleteReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteReleaseFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	id, err := params.GetIndex(req.GetArguments(), "id")
+	id, err := params.GetIndex(args, "id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -183,15 +170,16 @@ func DeleteReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 
 func GetReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetReleaseFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	id, err := params.GetIndex(req.GetArguments(), "id")
+	id, err := params.GetIndex(args, "id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -205,18 +193,19 @@ func GetReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 		return nil, fmt.Errorf("get release error: %v", err)
 	}
 
-	return to.TextResult(release)
+	return to.TextResult(slimRelease(release))
 }
 
 func GetLatestReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetLatestReleaseFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -228,31 +217,32 @@ func GetLatestReleaseFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return nil, fmt.Errorf("get latest release error: %v", err)
 	}
 
-	return to.TextResult(release)
+	return to.TextResult(slimRelease(release))
 }
 
 func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListReleasesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	var pIsDraft *bool
-	isDraft, ok := req.GetArguments()["is_draft"].(bool)
+	isDraft, ok := args["is_draft"].(bool)
 	if ok {
 		pIsDraft = new(isDraft)
 	}
 	var pIsPreRelease *bool
-	isPreRelease, ok := req.GetArguments()["is_pre_release"].(bool)
+	isPreRelease, ok := args["is_pre_release"].(bool)
 	if ok {
 		pIsPreRelease = new(isPreRelease)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 20)
+	page := params.GetOptionalInt(args, "page", 1)
+	pageSize := params.GetOptionalInt(args, "pageSize", 20)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -270,18 +260,5 @@ func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 		return nil, fmt.Errorf("list releases error: %v", err)
 	}
 
-	results := make([]ListReleaseResult, len(releases))
-	for _, release := range releases {
-		results = append(results, ListReleaseResult{
-			ID:           release.ID,
-			TagName:      release.TagName,
-			Target:       release.Target,
-			Title:        release.Title,
-			IsDraft:      release.IsDraft,
-			IsPrerelease: release.IsPrerelease,
-			CreatedAt:    release.CreatedAt,
-			PublishedAt:  release.PublishedAt,
-		})
-	}
-	return to.TextResult(results)
+	return to.TextResult(slimReleases(releases))
 }

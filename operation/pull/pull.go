@@ -2,7 +2,6 @@ package pull
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -63,7 +62,7 @@ var (
 		mcp.WithString("sort", mcp.Description("sort"), mcp.Enum("oldest", "recentupdate", "leastupdate", "mostcomment", "leastcomment", "priority"), mcp.DefaultString("recentupdate")),
 		mcp.WithNumber("milestone", mcp.Description("milestone")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	CreatePullRequestTool = mcp.NewTool(
@@ -104,7 +103,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("pull request index")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	GetPullRequestReviewTool = mcp.NewTool(
@@ -269,15 +268,16 @@ func init() {
 
 func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetPullRequestByIndexFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -290,24 +290,25 @@ func GetPullRequestByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(pr)
+	return to.TextResult(slimPullRequest(pr))
 }
 
 func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetPullRequestDiffFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	binary, _ := req.GetArguments()["binary"].(bool)
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	binary, _ := args["binary"].(bool)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -320,41 +321,31 @@ func GetPullRequestDiffFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v diff err: %v", owner, repo, index, err))
 	}
 
-	result := map[string]any{
-		"diff":   string(diffBytes),
-		"binary": binary,
-		"index":  index,
-		"repo":   repo,
-		"owner":  owner,
-	}
-	return to.TextResult(result)
+	return to.TextResult(string(diffBytes))
 }
 
 func ListRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoPullRequests")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	state, _ := req.GetArguments()["state"].(string)
-	sort, ok := req.GetArguments()["sort"].(string)
-	if !ok {
-		sort = "recentupdate"
-	}
-	milestone := params.GetOptionalInt(req.GetArguments(), "milestone", 0)
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	state, _ := args["state"].(string)
+	sort := params.GetOptionalString(args, "sort", "recentupdate")
+	milestone := params.GetOptionalInt(args, "milestone", 0)
+	page, pageSize := params.GetPagination(args, 30)
 	opt := gitea_sdk.ListPullRequestsOptions{
 		State:     gitea_sdk.StateType(state),
 		Sort:      sort,
 		Milestone: milestone,
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -366,34 +357,35 @@ func ListRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return to.ErrorResult(fmt.Errorf("list %v/%v/pull_requests err: %v", owner, repo, err))
 	}
 
-	return to.TextResult(pullRequests)
+	return to.TextResult(slimPullRequests(pullRequests))
 }
 
 func CreatePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreatePullRequestFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	title, ok := req.GetArguments()["title"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("title is required"))
+	title, err := params.GetString(args, "title")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	body, ok := req.GetArguments()["body"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("body is required"))
+	body, err := params.GetString(args, "body")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	head, ok := req.GetArguments()["head"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("head is required"))
+	head, err := params.GetString(args, "head")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	base, ok := req.GetArguments()["base"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("base is required"))
+	base, err := params.GetString(args, "base")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -409,45 +401,27 @@ func CreatePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 		return to.ErrorResult(fmt.Errorf("create %v/%v/pull_request err: %v", owner, repo, err))
 	}
 
-	return to.TextResult(pr)
+	return to.TextResult(slimPullRequest(pr))
 }
 
 func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreatePullRequestReviewerFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
-	var reviewers []string
-	if reviewersArg, exists := req.GetArguments()["reviewers"]; exists {
-		if reviewersSlice, ok := reviewersArg.([]any); ok {
-			for _, reviewer := range reviewersSlice {
-				if reviewerStr, ok := reviewer.(string); ok {
-					reviewers = append(reviewers, reviewerStr)
-				}
-			}
-		}
-	}
-
-	var teamReviewers []string
-	if teamReviewersArg, exists := req.GetArguments()["team_reviewers"]; exists {
-		if teamReviewersSlice, ok := teamReviewersArg.([]any); ok {
-			for _, teamReviewer := range teamReviewersSlice {
-				if teamReviewerStr, ok := teamReviewer.(string); ok {
-					teamReviewers = append(teamReviewers, teamReviewerStr)
-				}
-			}
-		}
-	}
+	reviewers := params.GetStringSlice(args, "reviewers")
+	teamReviewers := params.GetStringSlice(args, "team_reviewers")
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -476,40 +450,22 @@ func CreatePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeletePullRequestReviewerFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
-	var reviewers []string
-	if reviewersArg, exists := req.GetArguments()["reviewers"]; exists {
-		if reviewersSlice, ok := reviewersArg.([]any); ok {
-			for _, reviewer := range reviewersSlice {
-				if reviewerStr, ok := reviewer.(string); ok {
-					reviewers = append(reviewers, reviewerStr)
-				}
-			}
-		}
-	}
-
-	var teamReviewers []string
-	if teamReviewersArg, exists := req.GetArguments()["team_reviewers"]; exists {
-		if teamReviewersSlice, ok := teamReviewersArg.([]any); ok {
-			for _, teamReviewer := range teamReviewersSlice {
-				if teamReviewerStr, ok := teamReviewer.(string); ok {
-					teamReviewers = append(teamReviewers, teamReviewerStr)
-				}
-			}
-		}
-	}
+	reviewers := params.GetStringSlice(args, "reviewers")
+	teamReviewers := params.GetStringSlice(args, "team_reviewers")
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -537,20 +493,20 @@ func DeletePullRequestReviewerFn(ctx context.Context, req mcp.CallToolRequest) (
 
 func ListPullRequestReviewsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListPullRequestReviewsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	page, pageSize := params.GetPagination(args, 30)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -559,32 +515,33 @@ func ListPullRequestReviewsFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 	reviews, _, err := client.ListPullReviews(owner, repo, index, gitea_sdk.ListPullReviewsOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list reviews for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(reviews)
+	return to.TextResult(slimReviews(reviews))
 }
 
 func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetPullRequestReviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	reviewID, err := params.GetIndex(req.GetArguments(), "review_id")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	reviewID, err := params.GetIndex(args, "review_id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -599,24 +556,25 @@ func GetPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 		return to.ErrorResult(fmt.Errorf("get review %v for %v/%v/pr/%v err: %v", reviewID, owner, repo, index, err))
 	}
 
-	return to.TextResult(review)
+	return to.TextResult(slimReview(review))
 }
 
 func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListPullRequestReviewCommentsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	reviewID, err := params.GetIndex(req.GetArguments(), "review_id")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	reviewID, err := params.GetIndex(args, "review_id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -631,38 +589,39 @@ func ListPullRequestReviewCommentsFn(ctx context.Context, req mcp.CallToolReques
 		return to.ErrorResult(fmt.Errorf("list review comments for review %v on %v/%v/pr/%v err: %v", reviewID, owner, repo, index, err))
 	}
 
-	return to.TextResult(comments)
+	return to.TextResult(slimReviewComments(comments))
 }
 
 func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreatePullRequestReviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.CreatePullReviewOptions{}
 
-	if state, ok := req.GetArguments()["state"].(string); ok {
+	if state, ok := args["state"].(string); ok {
 		opt.State = gitea_sdk.ReviewStateType(state)
 	}
-	if body, ok := req.GetArguments()["body"].(string); ok {
+	if body, ok := args["body"].(string); ok {
 		opt.Body = body
 	}
-	if commitID, ok := req.GetArguments()["commit_id"].(string); ok {
+	if commitID, ok := args["commit_id"].(string); ok {
 		opt.CommitID = commitID
 	}
 
 	// Parse inline comments
-	if commentsArg, exists := req.GetArguments()["comments"]; exists {
+	if commentsArg, exists := args["comments"]; exists {
 		if commentsSlice, ok := commentsArg.([]any); ok {
 			for _, comment := range commentsSlice {
 				if commentMap, ok := comment.(map[string]any); ok {
@@ -695,36 +654,37 @@ func CreatePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("create review for %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(review)
+	return to.TextResult(slimReview(review))
 }
 
 func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called SubmitPullRequestReviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	reviewID, err := params.GetIndex(req.GetArguments(), "review_id")
+	repo, err := params.GetString(args, "repo")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	state, ok := req.GetArguments()["state"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("state is required"))
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	reviewID, err := params.GetIndex(args, "review_id")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	state, err := params.GetString(args, "state")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.SubmitPullReviewOptions{
 		State: gitea_sdk.ReviewStateType(state),
 	}
-	if body, ok := req.GetArguments()["body"].(string); ok {
+	if body, ok := args["body"].(string); ok {
 		opt.Body = body
 	}
 
@@ -738,24 +698,25 @@ func SubmitPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("submit review %v for %v/%v/pr/%v err: %v", reviewID, owner, repo, index, err))
 	}
 
-	return to.TextResult(review)
+	return to.TextResult(slimReview(review))
 }
 
 func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeletePullRequestReviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	reviewID, err := params.GetIndex(req.GetArguments(), "review_id")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	reviewID, err := params.GetIndex(args, "review_id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -782,25 +743,26 @@ func DeletePullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*m
 
 func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DismissPullRequestReviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	reviewID, err := params.GetIndex(req.GetArguments(), "review_id")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(args, "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	reviewID, err := params.GetIndex(args, "review_id")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.DismissPullReviewOptions{}
-	if message, ok := req.GetArguments()["message"].(string); ok {
+	if message, ok := args["message"].(string); ok {
 		opt.Message = message
 	}
 
@@ -826,38 +788,24 @@ func DismissPullRequestReviewFn(ctx context.Context, req mcp.CallToolRequest) (*
 
 func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called MergePullRequestFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
-	mergeStyle := "merge"
-	if style, exists := req.GetArguments()["merge_style"].(string); exists && style != "" {
-		mergeStyle = style
-	}
-
-	title := ""
-	if t, exists := req.GetArguments()["title"].(string); exists {
-		title = t
-	}
-
-	message := ""
-	if msg, exists := req.GetArguments()["message"].(string); exists {
-		message = msg
-	}
-
-	deleteBranch := false
-	if del, exists := req.GetArguments()["delete_branch"].(bool); exists {
-		deleteBranch = del
-	}
+	mergeStyle := params.GetOptionalString(args, "merge_style", "merge")
+	title, _ := args["title"].(string)
+	message, _ := args["message"].(string)
+	deleteBranch, _ := args["delete_branch"].(bool)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -897,53 +845,46 @@ func MergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called EditPullRequestFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
+	index, err := params.GetIndex(args, "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
 	opt := gitea_sdk.EditPullRequestOption{}
 
-	if title, ok := req.GetArguments()["title"].(string); ok {
+	if title, ok := args["title"].(string); ok {
 		opt.Title = title
 	}
-	if body, ok := req.GetArguments()["body"].(string); ok {
+	if body, ok := args["body"].(string); ok {
 		opt.Body = new(body)
 	}
-	if base, ok := req.GetArguments()["base"].(string); ok {
+	if base, ok := args["base"].(string); ok {
 		opt.Base = base
 	}
-	if assignee, ok := req.GetArguments()["assignee"].(string); ok {
+	if assignee, ok := args["assignee"].(string); ok {
 		opt.Assignee = assignee
 	}
-	if assigneesArg, exists := req.GetArguments()["assignees"]; exists {
-		if assigneesSlice, ok := assigneesArg.([]any); ok {
-			var assignees []string
-			for _, a := range assigneesSlice {
-				if s, ok := a.(string); ok {
-					assignees = append(assignees, s)
-				}
-			}
-			opt.Assignees = assignees
-		}
+	if assignees := params.GetStringSlice(args, "assignees"); assignees != nil {
+		opt.Assignees = assignees
 	}
-	if val, exists := req.GetArguments()["milestone"]; exists {
+	if val, exists := args["milestone"]; exists {
 		if milestone, ok := params.ToInt64(val); ok {
 			opt.Milestone = milestone
 		}
 	}
-	if state, ok := req.GetArguments()["state"].(string); ok {
+	if state, ok := args["state"].(string); ok {
 		opt.State = new(gitea_sdk.StateType(state))
 	}
-	if allowMaintainerEdit, ok := req.GetArguments()["allow_maintainer_edit"].(bool); ok {
+	if allowMaintainerEdit, ok := args["allow_maintainer_edit"].(bool); ok {
 		opt.AllowMaintainerEdit = new(allowMaintainerEdit)
 	}
 
@@ -957,5 +898,5 @@ func EditPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/pr/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(pr)
+	return to.TextResult(slimPullRequest(pr))
 }

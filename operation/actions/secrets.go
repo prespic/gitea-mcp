@@ -39,7 +39,7 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 
 	UpsertRepoActionSecretTool = mcp.NewTool(
@@ -65,7 +65,7 @@ var (
 		mcp.WithDescription("List organization Actions secrets (metadata only; secret values are never returned)"),
 		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 
 	UpsertOrgActionSecretTool = mcp.NewTool(
@@ -97,16 +97,15 @@ func init() {
 
 func ListRepoActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoActionSecretsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -114,7 +113,7 @@ func ListRepoActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 	}
 
 	secrets, _, err := client.ListRepoActionSecret(owner, repo, gitea_sdk.ListRepoActionSecretOption{
-		ListOptions: gitea_sdk.ListOptions{Page: int(page), PageSize: int(pageSize)},
+		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list repo action secrets err: %v", err))
@@ -136,20 +135,20 @@ func ListRepoActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 func UpsertRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UpsertRepoActionSecretFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	data, ok := req.GetArguments()["data"].(string)
-	if !ok || data == "" {
+	data, err := params.GetString(req.GetArguments(), "data")
+	if err != nil || data == "" {
 		return to.ErrorResult(errors.New("data is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
@@ -171,16 +170,16 @@ func UpsertRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 func DeleteRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteRepoActionSecretFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	secretName, ok := req.GetArguments()["secretName"].(string)
-	if !ok || secretName == "" {
+	secretName, err := params.GetString(req.GetArguments(), "secretName")
+	if err != nil || secretName == "" {
 		return to.ErrorResult(errors.New("secretName is required"))
 	}
 
@@ -197,12 +196,11 @@ func DeleteRepoActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 func ListOrgActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListOrgActionSecretsFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -210,7 +208,7 @@ func ListOrgActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 
 	secrets, _, err := client.ListOrgActionSecret(org, gitea_sdk.ListOrgActionSecretOption{
-		ListOptions: gitea_sdk.ListOptions{Page: int(page), PageSize: int(pageSize)},
+		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list org action secrets err: %v", err))
@@ -232,16 +230,16 @@ func ListOrgActionSecretsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 func UpsertOrgActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UpsertOrgActionSecretFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	data, ok := req.GetArguments()["data"].(string)
-	if !ok || data == "" {
+	data, err := params.GetString(req.GetArguments(), "data")
+	if err != nil || data == "" {
 		return to.ErrorResult(errors.New("data is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
@@ -263,18 +261,18 @@ func UpsertOrgActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 func DeleteOrgActionSecretFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteOrgActionSecretFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	secretName, ok := req.GetArguments()["secretName"].(string)
-	if !ok || secretName == "" {
+	secretName, err := params.GetString(req.GetArguments(), "secretName")
+	if err != nil || secretName == "" {
 		return to.ErrorResult(errors.New("secretName is required"))
 	}
 
 	escapedOrg := url.PathEscape(org)
 	escapedSecret := url.PathEscape(secretName)
-	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/secrets/%s", escapedOrg, escapedSecret), nil, nil, nil)
+	_, err = gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/secrets/%s", escapedOrg, escapedSecret), nil, nil, nil)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("delete org action secret err: %v", err))
 	}

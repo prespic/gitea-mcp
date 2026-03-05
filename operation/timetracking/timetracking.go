@@ -3,7 +3,6 @@ package timetracking
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -73,7 +72,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	AddTrackedTimeTool = mcp.NewTool(
@@ -100,7 +99,7 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	GetMyTimesTool = mcp.NewTool(
@@ -128,13 +127,13 @@ func init() {
 
 func StartStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called StartStopwatchFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -153,13 +152,13 @@ func StartStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 
 func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called StopStopwatchFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -178,13 +177,13 @@ func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 
 func DeleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteStopwatchFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -214,27 +213,26 @@ func GetMyStopwatchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if len(stopwatches) == 0 {
 		return to.TextResult("No active stopwatches")
 	}
-	return to.TextResult(stopwatches)
+	return to.TextResult(slimStopWatches(stopwatches))
 }
 
 // Tracked time handler functions
 
 func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListTrackedTimesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
@@ -242,8 +240,8 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 	times, _, err := client.ListIssueTrackedTimes(owner, repo, index, gitea_sdk.ListTrackedTimesOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	})
 	if err != nil {
@@ -252,18 +250,18 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	if len(times) == 0 {
 		return to.TextResult(fmt.Sprintf("No tracked times for issue %s/%s#%d", owner, repo, index))
 	}
-	return to.TextResult(times)
+	return to.TextResult(slimTrackedTimes(times))
 }
 
 func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called AddTrackedTimeFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -284,18 +282,18 @@ func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("add tracked time to %s/%s#%d err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(trackedTime)
+	return to.TextResult(slimTrackedTime(trackedTime))
 }
 
 func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteTrackedTimeFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	index, err := params.GetIndex(req.GetArguments(), "index")
@@ -319,25 +317,24 @@ func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 
 func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoTimesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 	times, _, err := client.ListRepoTrackedTimes(owner, repo, gitea_sdk.ListTrackedTimesOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	})
 	if err != nil {
@@ -346,7 +343,7 @@ func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if len(times) == 0 {
 		return to.TextResult(fmt.Sprintf("No tracked times for repository %s/%s", owner, repo))
 	}
-	return to.TextResult(times)
+	return to.TextResult(slimTrackedTimes(times))
 }
 
 func GetMyTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -362,5 +359,5 @@ func GetMyTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	if len(times) == 0 {
 		return to.TextResult("No tracked times found")
 	}
-	return to.TextResult(times)
+	return to.TextResult(slimTrackedTimes(times))
 }

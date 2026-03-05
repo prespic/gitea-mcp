@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -54,7 +53,7 @@ var (
 		ListMyReposToolName,
 		mcp.WithDescription("List my repositories"),
 		mcp.WithNumber("page", mcp.Required(), mcp.Description("Page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Required(), mcp.Description("Page size number"), mcp.DefaultNumber(100), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Required(), mcp.Description("Page size number"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 )
 
@@ -108,20 +107,21 @@ func RegisterTool(s *server.MCPServer) {
 
 func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateRepoFn")
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repository name is required"))
+	args := req.GetArguments()
+	name, err := params.GetString(args, "name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	description, _ := req.GetArguments()["description"].(string)
-	private, _ := req.GetArguments()["private"].(bool)
-	issueLabels, _ := req.GetArguments()["issue_labels"].(string)
-	autoInit, _ := req.GetArguments()["auto_init"].(bool)
-	template, _ := req.GetArguments()["template"].(bool)
-	gitignores, _ := req.GetArguments()["gitignores"].(string)
-	license, _ := req.GetArguments()["license"].(string)
-	readme, _ := req.GetArguments()["readme"].(string)
-	defaultBranch, _ := req.GetArguments()["default_branch"].(string)
-	organization, _ := req.GetArguments()["organization"].(string)
+	description, _ := args["description"].(string)
+	private, _ := args["private"].(bool)
+	issueLabels, _ := args["issue_labels"].(string)
+	autoInit, _ := args["auto_init"].(bool)
+	template, _ := args["template"].(bool)
+	gitignores, _ := args["gitignores"].(string)
+	license, _ := args["license"].(string)
+	readme, _ := args["readme"].(string)
+	defaultBranch, _ := args["default_branch"].(string)
+	organization, _ := args["organization"].(string)
 
 	opt := gitea_sdk.CreateRepoOption{
 		Name:          name,
@@ -152,25 +152,26 @@ func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 			return to.ErrorResult(fmt.Errorf("create repository '%s' err: %v", name, err))
 		}
 	}
-	return to.TextResult(repo)
+	return to.TextResult(slimRepo(repo))
 }
 
 func ForkRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ForkRepoFn")
-	user, ok := req.GetArguments()["user"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("user name is required"))
+	args := req.GetArguments()
+	user, err := params.GetString(args, "user")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repository name is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	organization, ok := req.GetArguments()["organization"].(string)
+	organization, ok := args["organization"].(string)
 	organizationPtr := new(organization)
 	if !ok || organization == "" {
 		organizationPtr = nil
 	}
-	name, ok := req.GetArguments()["name"].(string)
+	name, ok := args["name"].(string)
 	namePtr := new(name)
 	if !ok || name == "" {
 		namePtr = nil
@@ -192,12 +193,11 @@ func ForkRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 
 func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListMyReposFn")
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.ListReposOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -209,5 +209,5 @@ func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 		return to.ErrorResult(fmt.Errorf("list my repositories error: %v", err))
 	}
 
-	return to.TextResult(repos)
+	return to.TextResult(slimRepos(repos))
 }

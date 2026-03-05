@@ -109,17 +109,17 @@ func limitBytes(data []byte, maxBytes int) ([]byte, bool) {
 
 func GetRepoActionJobLogPreviewFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetRepoActionJobLogPreviewFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	jobID, err := params.GetIndex(req.GetArguments(), "job_id")
-	if err != nil || jobID <= 0 {
-		return to.ErrorResult(errors.New("job_id is required"))
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	tailLines := int(params.GetOptionalInt(req.GetArguments(), "tail_lines", 200))
 	maxBytes := int(params.GetOptionalInt(req.GetArguments(), "max_bytes", 65536))
@@ -144,17 +144,17 @@ func GetRepoActionJobLogPreviewFn(ctx context.Context, req mcp.CallToolRequest) 
 
 func DownloadRepoActionJobLogFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DownloadRepoActionJobLogFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	jobID, err := params.GetIndex(req.GetArguments(), "job_id")
-	if err != nil || jobID <= 0 {
-		return to.ErrorResult(errors.New("job_id is required"))
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	outputPath, _ := req.GetArguments()["output_path"].(string)
 

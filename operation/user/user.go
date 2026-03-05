@@ -24,7 +24,7 @@ const (
 	// defaultPage is the default starting page number used for paginated organization listings.
 	defaultPage = 1
 	// defaultPageSize is the default number of organizations per page for paginated queries.
-	defaultPageSize = 100
+	defaultPageSize = 30
 )
 
 // Tool is the MCP tool manager instance for registering all MCP tools in this package.
@@ -66,16 +66,6 @@ func registerTools() {
 	}
 }
 
-// getIntArg parses an integer argument from the MCP request arguments map.
-// Returns def if missing, not a number, or less than 1. Used for pagination arguments.
-func getIntArg(req mcp.CallToolRequest, name string, def int) int {
-	v := params.GetOptionalInt(req.GetArguments(), name, int64(def))
-	if v < 1 {
-		return def
-	}
-	return int(v)
-}
-
 // GetUserInfoFn is the handler for "get_my_user_info" MCP tool requests.
 // Logs invocation, fetches current user info from gitea, wraps result for MCP.
 func GetUserInfoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -88,7 +78,7 @@ func GetUserInfoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get user info err: %v", err))
 	}
-	return to.TextResult(user)
+	return to.TextResult(slimUserDetail(user))
 }
 
 // GetUserOrgsFn is the handler for "get_user_orgs" MCP tool requests.
@@ -96,8 +86,7 @@ func GetUserInfoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 // performs Gitea organization listing, and wraps the result for MCP.
 func GetUserOrgsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("[User] Called GetUserOrgsFn")
-	page := getIntArg(req, "page", defaultPage)
-	pageSize := getIntArg(req, "pageSize", defaultPageSize)
+	page, pageSize := params.GetPagination(req.GetArguments(), defaultPageSize)
 
 	opt := gitea_sdk.ListOrgsOptions{
 		ListOptions: gitea_sdk.ListOptions{
@@ -113,5 +102,5 @@ func GetUserOrgsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get user orgs err: %v", err))
 	}
-	return to.TextResult(orgs)
+	return to.TextResult(slimOrgs(orgs))
 }

@@ -116,13 +116,11 @@ func TestEditPullRequestFn(t *testing.T) {
 				t.Fatalf("expected text content, got %T", result.Content[0])
 			}
 
-			var parsed struct {
-				Result map[string]any `json:"Result"`
-			}
+			var parsed map[string]any
 			if err := json.Unmarshal([]byte(textContent.Text), &parsed); err != nil {
 				t.Fatalf("unmarshal result text: %v", err)
 			}
-			if got := parsed.Result["title"].(string); got != "WIP: my feature" {
+			if got := parsed["title"].(string); got != "WIP: my feature" {
 				t.Fatalf("result title = %q, want %q", got, "WIP: my feature")
 			}
 		})
@@ -239,20 +237,18 @@ func TestMergePullRequestFn(t *testing.T) {
 				t.Fatalf("expected text content, got %T", result.Content[0])
 			}
 
-			var parsed struct {
-				Result map[string]any `json:"Result"`
-			}
+			var parsed map[string]any
 			if err := json.Unmarshal([]byte(textContent.Text), &parsed); err != nil {
 				t.Fatalf("unmarshal result text: %v", err)
 			}
-			if parsed.Result["merged"] != true {
-				t.Fatalf("expected merged=true, got %v", parsed.Result["merged"])
+			if parsed["merged"] != true {
+				t.Fatalf("expected merged=true, got %v", parsed["merged"])
 			}
-			if parsed.Result["merge_style"] != "squash" {
-				t.Fatalf("expected merge_style 'squash', got %v", parsed.Result["merge_style"])
+			if parsed["merge_style"] != "squash" {
+				t.Fatalf("expected merge_style 'squash', got %v", parsed["merge_style"])
 			}
-			if parsed.Result["branch_deleted"] != true {
-				t.Fatalf("expected branch_deleted=true, got %v", parsed.Result["branch_deleted"])
+			if parsed["branch_deleted"] != true {
+				t.Fatalf("expected branch_deleted=true, got %v", parsed["branch_deleted"])
 			}
 		})
 	}
@@ -370,27 +366,13 @@ func TestGetPullRequestDiffFn(t *testing.T) {
 				t.Fatalf("expected text content, got %T", result.Content[0])
 			}
 
-			var parsed struct {
-				Result map[string]any `json:"Result"`
-			}
+			// The diff response is now a plain string
+			var parsed string
 			if err := json.Unmarshal([]byte(textContent.Text), &parsed); err != nil {
 				t.Fatalf("unmarshal result text: %v", err)
 			}
-
-			if got, ok := parsed.Result["diff"].(string); !ok || got != diffRaw {
-				t.Fatalf("diff = %q, want %q", got, diffRaw)
-			}
-			if got, ok := parsed.Result["binary"].(bool); !ok || got != true {
-				t.Fatalf("binary = %v, want true", got)
-			}
-			if got, ok := parsed.Result["index"].(float64); !ok || int64(got) != int64(index) {
-				t.Fatalf("index = %v, want %d", got, index)
-			}
-			if got, ok := parsed.Result["owner"].(string); !ok || got != owner {
-				t.Fatalf("owner = %q, want %q", got, owner)
-			}
-			if got, ok := parsed.Result["repo"].(string); !ok || got != repo {
-				t.Fatalf("repo = %q, want %q", got, repo)
+			if parsed != diffRaw {
+				t.Fatalf("diff = %q, want %q", parsed, diffRaw)
 			}
 		})
 	}

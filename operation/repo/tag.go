@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -78,31 +77,23 @@ func init() {
 	})
 }
 
-// To avoid return too many tokens, we need to provide at least information as possible
-// llm can call get tag to get more information
-type ListTagResult struct {
-	ID     string                `json:"id"`
-	Name   string                `json:"name"`
-	Commit *gitea_sdk.CommitMeta `json:"commit"`
-	// message may be a long text, so we should not provide it here
-}
-
 func CreateTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateTagFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	tagName, ok := req.GetArguments()["tag_name"].(string)
-	if !ok {
-		return nil, errors.New("tag_name is required")
+	tagName, err := params.GetString(args, "tag_name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	target, _ := req.GetArguments()["target"].(string)
-	message, _ := req.GetArguments()["message"].(string)
+	target, _ := args["target"].(string)
+	message, _ := args["message"].(string)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -122,17 +113,18 @@ func CreateTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 
 func DeleteTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteTagFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	tagName, ok := req.GetArguments()["tag_name"].(string)
-	if !ok {
-		return nil, errors.New("tag_name is required")
+	tagName, err := params.GetString(args, "tag_name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -149,17 +141,18 @@ func DeleteTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 
 func GetTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetTagFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	tagName, ok := req.GetArguments()["tag_name"].(string)
-	if !ok {
-		return nil, errors.New("tag_name is required")
+	tagName, err := params.GetString(args, "tag_name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -171,21 +164,22 @@ func GetTagFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult
 		return nil, fmt.Errorf("get tag error: %v", err)
 	}
 
-	return to.TextResult(tag)
+	return to.TextResult(slimTag(tag))
 }
 
 func ListTagsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListTagsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return nil, errors.New("owner is required")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return nil, errors.New("repo is required")
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 20)
+	page := params.GetOptionalInt(args, "page", 1)
+	pageSize := params.GetOptionalInt(args, "pageSize", 20)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -201,13 +195,5 @@ func ListTagsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 		return nil, fmt.Errorf("list tags error: %v", err)
 	}
 
-	results := make([]ListTagResult, 0, len(tags))
-	for _, tag := range tags {
-		results = append(results, ListTagResult{
-			ID:     tag.ID,
-			Name:   tag.Name,
-			Commit: tag.Commit,
-		})
-	}
-	return to.TextResult(results)
+	return to.TextResult(slimTags(tags))
 }

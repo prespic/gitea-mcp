@@ -2,12 +2,12 @@ package wiki
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
+	"gitea.com/gitea/gitea-mcp/pkg/params"
 	"gitea.com/gitea/gitea-mcp/pkg/to"
 	"gitea.com/gitea/gitea-mcp/pkg/tool"
 
@@ -109,18 +109,19 @@ func init() {
 
 func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListWikiPagesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	// Use direct HTTP request because SDK does not support yet wikis
 	var result any
-	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.QueryEscape(owner), url.QueryEscape(repo)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.QueryEscape(owner), url.QueryEscape(repo)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list wiki pages err: %v", err))
 	}
@@ -130,21 +131,22 @@ func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 
 func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetWikiPageFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	pageName, ok := req.GetArguments()["pageName"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("pageName is required"))
+	pageName, err := params.GetString(args, "pageName")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	var result any
-	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki page err: %v", err))
 	}
@@ -154,21 +156,22 @@ func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 
 func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetWikiRevisionsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	pageName, ok := req.GetArguments()["pageName"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("pageName is required"))
+	pageName, err := params.GetString(args, "pageName")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	var result any
-	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki revisions err: %v", err))
 	}
@@ -178,24 +181,25 @@ func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateWikiPageFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	title, ok := req.GetArguments()["title"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("title is required"))
+	title, err := params.GetString(args, "title")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	contentBase64, ok := req.GetArguments()["content_base64"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("content_base64 is required"))
+	contentBase64, err := params.GetString(args, "content_base64")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
-	message, _ := req.GetArguments()["message"].(string)
+	message, _ := args["message"].(string)
 	if message == "" {
 		message = fmt.Sprintf("Create wiki page '%s'", title)
 	}
@@ -207,7 +211,7 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	}
 
 	var result any
-	_, err := gitea.DoJSON(ctx, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.QueryEscape(owner), url.QueryEscape(repo)), nil, requestBody, &result)
+	_, err = gitea.DoJSON(ctx, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.QueryEscape(owner), url.QueryEscape(repo)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create wiki page err: %v", err))
 	}
@@ -217,21 +221,22 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 
 func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UpdateWikiPageFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	pageName, ok := req.GetArguments()["pageName"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("pageName is required"))
+	pageName, err := params.GetString(args, "pageName")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	contentBase64, ok := req.GetArguments()["content_base64"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("content_base64 is required"))
+	contentBase64, err := params.GetString(args, "content_base64")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
 	requestBody := map[string]string{
@@ -239,21 +244,21 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	}
 
 	// If title is given, use it. Otherwise, keep current page name
-	if title, ok := req.GetArguments()["title"].(string); ok && title != "" {
+	if title, ok := args["title"].(string); ok && title != "" {
 		requestBody["title"] = title
 	} else {
 		// Utiliser pageName comme fallback pour éviter "unnamed"
 		requestBody["title"] = pageName
 	}
 
-	if message, ok := req.GetArguments()["message"].(string); ok && message != "" {
+	if message, ok := args["message"].(string); ok && message != "" {
 		requestBody["message"] = message
 	} else {
 		requestBody["message"] = fmt.Sprintf("Update wiki page '%s'", pageName)
 	}
 
 	var result any
-	_, err := gitea.DoJSON(ctx, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, requestBody, &result)
+	_, err = gitea.DoJSON(ctx, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("update wiki page err: %v", err))
 	}
@@ -263,20 +268,21 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 
 func DeleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteWikiPageFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	pageName, ok := req.GetArguments()["pageName"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("pageName is required"))
+	pageName, err := params.GetString(args, "pageName")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 
-	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, nil)
+	_, err = gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, nil)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("delete wiki page err: %v", err))
 	}

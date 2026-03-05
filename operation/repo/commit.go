@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -27,7 +26,7 @@ var ListRepoCommitsTool = mcp.NewTool(
 	mcp.WithString("sha", mcp.Description("SHA or branch to start listing commits from")),
 	mcp.WithString("path", mcp.Description("path indicates that only commits that include the path's file/dir should be returned.")),
 	mcp.WithNumber("page", mcp.Required(), mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-	mcp.WithNumber("page_size", mcp.Required(), mcp.Description("page size"), mcp.DefaultNumber(50), mcp.Min(1)),
+	mcp.WithNumber("page_size", mcp.Required(), mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
 )
 
 func init() {
@@ -39,24 +38,25 @@ func init() {
 
 func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoCommitsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
-	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
-	}
-	page, err := params.GetIndex(req.GetArguments(), "page")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	pageSize, err := params.GetIndex(req.GetArguments(), "page_size")
+	repo, err := params.GetString(args, "repo")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	sha, _ := req.GetArguments()["sha"].(string)
-	path, _ := req.GetArguments()["path"].(string)
+	page, err := params.GetIndex(args, "page")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	pageSize, err := params.GetIndex(args, "page_size")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	sha, _ := args["sha"].(string)
+	path, _ := args["path"].(string)
 	opt := gitea_sdk.ListCommitOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     int(page),
@@ -73,5 +73,5 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list repo commits err: %v", err))
 	}
-	return to.TextResult(commits)
+	return to.TextResult(slimCommits(commits))
 }

@@ -2,7 +2,6 @@ package search
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -30,7 +29,7 @@ var (
 		mcp.WithDescription("search users"),
 		mcp.WithString("keyword", mcp.Required(), mcp.Description("Keyword")),
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(30)),
 	)
 
 	SearOrgTeamsTool = mcp.NewTool(
@@ -40,7 +39,7 @@ var (
 		mcp.WithString("query", mcp.Required(), mcp.Description("search organization teams")),
 		mcp.WithBoolean("includeDescription", mcp.Description("include description?")),
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(30)),
 	)
 
 	SearchReposTool = mcp.NewTool(
@@ -55,7 +54,7 @@ var (
 		mcp.WithString("sort", mcp.Description("Sort")),
 		mcp.WithString("order", mcp.Description("Order")),
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("PageSize"), mcp.DefaultNumber(30)),
 	)
 )
 
@@ -76,17 +75,16 @@ func init() {
 
 func UsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UsersFn")
-	keyword, ok := req.GetArguments()["keyword"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("keyword is required"))
+	keyword, err := params.GetString(req.GetArguments(), "keyword")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.SearchUsersOption{
 		KeyWord: keyword,
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -97,28 +95,27 @@ func UsersFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search users err: %v", err))
 	}
-	return to.TextResult(users)
+	return to.TextResult(slimUserDetails(users))
 }
 
 func OrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called OrgTeamsFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("organization is required"))
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	query, ok := req.GetArguments()["query"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("query is required"))
+	query, err := params.GetString(req.GetArguments(), "query")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	includeDescription, _ := req.GetArguments()["includeDescription"].(bool)
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.SearchTeamsOptions{
 		Query:              query,
 		IncludeDescription: includeDescription,
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -129,14 +126,14 @@ func OrgTeamsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResu
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search organization teams error: %v", err))
 	}
-	return to.TextResult(teams)
+	return to.TextResult(slimTeams(teams))
 }
 
 func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ReposFn")
-	keyword, ok := req.GetArguments()["keyword"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("keyword is required"))
+	keyword, err := params.GetString(req.GetArguments(), "keyword")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	keywordIsTopic, _ := req.GetArguments()["keywordIsTopic"].(bool)
 	keywordInDescription, _ := req.GetArguments()["keywordInDescription"].(bool)
@@ -153,8 +150,7 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	}
 	sort, _ := req.GetArguments()["sort"].(string)
 	order, _ := req.GetArguments()["order"].(string)
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.SearchRepoOptions{
 		Keyword:              keyword,
 		KeywordIsTopic:       keywordIsTopic,
@@ -165,8 +161,8 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 		Sort:                 sort,
 		Order:                order,
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -177,5 +173,5 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("search repos error: %v", err))
 	}
-	return to.TextResult(repos)
+	return to.TextResult(slimRepos(repos))
 }

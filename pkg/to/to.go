@@ -8,13 +8,8 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-type textResult struct {
-	Result any
-}
-
 func TextResult(v any) (*mcp.CallToolResult, error) {
-	result := textResult{v}
-	resultBytes, err := json.Marshal(result)
+	resultBytes, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("marshal result err: %v", err)
 	}

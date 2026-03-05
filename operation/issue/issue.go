@@ -2,7 +2,6 @@ package issue
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -44,7 +43,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("state", mcp.Description("issue state"), mcp.DefaultString("all")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	CreateIssueTool = mcp.NewTool(
@@ -129,13 +128,13 @@ func init() {
 
 func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetIssueByIndexFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -150,30 +149,29 @@ func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(issue)
+	return to.TextResult(slimIssue(issue))
 }
 
 func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListIssuesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	state, ok := req.GetArguments()["state"].(string)
 	if !ok {
 		state = "all"
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.ListIssueOption{
 		State: gitea_sdk.StateType(state),
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -184,26 +182,26 @@ func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issues err: %v", owner, repo, err))
 	}
-	return to.TextResult(issues)
+	return to.TextResult(slimIssues(issues))
 }
 
 func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateIssueFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	title, ok := req.GetArguments()["title"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("title is required"))
+	title, err := params.GetString(req.GetArguments(), "title")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	body, ok := req.GetArguments()["body"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("body is required"))
+	body, err := params.GetString(req.GetArguments(), "body")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -217,26 +215,26 @@ func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 		return to.ErrorResult(fmt.Errorf("create %v/%v/issue err: %v", owner, repo, err))
 	}
 
-	return to.TextResult(issue)
+	return to.TextResult(slimIssue(issue))
 }
 
 func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateIssueCommentFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	body, ok := req.GetArguments()["body"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("body is required"))
+	body, err := params.GetString(req.GetArguments(), "body")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	opt := gitea_sdk.CreateIssueCommentOption{
 		Body: body,
@@ -250,18 +248,18 @@ func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 		return to.ErrorResult(fmt.Errorf("create %v/%v/issue/%v/comment err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(issueComment)
+	return to.TextResult(slimComment(issueComment))
 }
 
 func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called EditIssueFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -278,17 +276,7 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	if ok {
 		opt.Body = new(body)
 	}
-	var assignees []string
-	if assigneesArg, exists := req.GetArguments()["assignees"]; exists {
-		if assigneesSlice, ok := assigneesArg.([]any); ok {
-			for _, assignee := range assigneesSlice {
-				if assigneeStr, ok := assignee.(string); ok {
-					assignees = append(assignees, assigneeStr)
-				}
-			}
-		}
-	}
-	opt.Assignees = assignees
+	opt.Assignees = params.GetStringSlice(req.GetArguments(), "assignees")
 	if val, exists := req.GetArguments()["milestone"]; exists {
 		if milestone, ok := params.ToInt64(val); ok {
 			opt.Milestone = new(milestone)
@@ -308,26 +296,26 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(issue)
+	return to.TextResult(slimIssue(issue))
 }
 
 func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called EditIssueCommentFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	commentID, err := params.GetIndex(req.GetArguments(), "commentID")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	body, ok := req.GetArguments()["body"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("body is required"))
+	body, err := params.GetString(req.GetArguments(), "body")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	opt := gitea_sdk.EditIssueCommentOption{
 		Body: body,
@@ -341,18 +329,18 @@ func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/issues/comments/%v err: %v", owner, repo, commentID, err))
 	}
 
-	return to.TextResult(issueComment)
+	return to.TextResult(slimComment(issueComment))
 }
 
 func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetIssueCommentsByIndexFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -368,5 +356,5 @@ func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*m
 		return to.ErrorResult(fmt.Errorf("get %v/%v/issues/%v/comments err: %v", owner, repo, index, err))
 	}
 
-	return to.TextResult(issue)
+	return to.TextResult(slimComments(issue))
 }

@@ -5,6 +5,47 @@ import (
 	"strconv"
 )
 
+// GetString extracts a required string parameter from MCP tool arguments.
+func GetString(args map[string]any, key string) (string, error) {
+	val, ok := args[key].(string)
+	if !ok {
+		return "", fmt.Errorf("%s is required", key)
+	}
+	return val, nil
+}
+
+// GetOptionalString extracts an optional string parameter with a default value.
+func GetOptionalString(args map[string]any, key, defaultVal string) string {
+	if val, ok := args[key].(string); ok {
+		return val
+	}
+	return defaultVal
+}
+
+// GetStringSlice extracts an optional string slice parameter from MCP tool arguments.
+func GetStringSlice(args map[string]any, key string) []string {
+	val, ok := args[key]
+	if !ok {
+		return nil
+	}
+	sliceVal, ok := val.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(sliceVal))
+	for _, item := range sliceVal {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// GetPagination extracts page and pageSize parameters, returning them as ints.
+func GetPagination(args map[string]any, defaultPageSize int64) (page, pageSize int) {
+	return int(GetOptionalInt(args, "page", 1)), int(GetOptionalInt(args, "pageSize", defaultPageSize))
+}
+
 // ToInt64 converts a value to int64, accepting both float64 (JSON number) and
 // string representations. Returns false if the value cannot be converted.
 func ToInt64(val any) (int64, bool) {

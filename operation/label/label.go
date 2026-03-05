@@ -41,7 +41,7 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	GetRepoLabelTool = mcp.NewTool(
@@ -121,7 +121,7 @@ var (
 		mcp.WithDescription("Lists labels defined at organization level"),
 		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
 	)
 
 	CreateOrgLabelTool = mcp.NewTool(
@@ -210,21 +210,20 @@ func init() {
 
 func ListRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoLabelsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	opt := gitea_sdk.ListLabelsOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -235,18 +234,18 @@ func ListRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list %v/%v/labels err: %v", owner, repo, err))
 	}
-	return to.TextResult(labels)
+	return to.TextResult(slimLabels(labels))
 }
 
 func GetRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetRepoLabelFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, err := params.GetIndex(req.GetArguments(), "id")
 	if err != nil {
@@ -261,26 +260,26 @@ func GetRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get %v/%v/label/%v err: %v", owner, repo, id, err))
 	}
-	return to.TextResult(label)
+	return to.TextResult(slimLabel(label))
 }
 
 func CreateRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateRepoLabelFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("name is required"))
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	color, ok := req.GetArguments()["color"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("color is required"))
+	color, err := params.GetString(req.GetArguments(), "color")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	description, _ := req.GetArguments()["description"].(string) // Optional
 
@@ -298,18 +297,18 @@ func CreateRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/%v/label err: %v", owner, repo, err))
 	}
-	return to.TextResult(label)
+	return to.TextResult(slimLabel(label))
 }
 
 func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called EditRepoLabelFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, err := params.GetIndex(req.GetArguments(), "id")
 	if err != nil {
@@ -335,18 +334,18 @@ func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("edit %v/%v/label/%v err: %v", owner, repo, id, err))
 	}
-	return to.TextResult(label)
+	return to.TextResult(slimLabel(label))
 }
 
 func DeleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteRepoLabelFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, err := params.GetIndex(req.GetArguments(), "id")
 	if err != nil {
@@ -366,13 +365,13 @@ func DeleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 
 func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called AddIssueLabelsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -403,18 +402,18 @@ func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("add labels to %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(issueLabels)
+	return to.TextResult(slimLabels(issueLabels))
 }
 
 func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ReplaceIssueLabelsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -445,18 +444,18 @@ func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("replace labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
 	}
-	return to.TextResult(issueLabels)
+	return to.TextResult(slimLabels(issueLabels))
 }
 
 func ClearIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ClearIssueLabelsFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -476,13 +475,13 @@ func ClearIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called RemoveIssueLabelFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("owner is required"))
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("repo is required"))
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	index, err := params.GetIndex(req.GetArguments(), "index")
 	if err != nil {
@@ -506,17 +505,16 @@ func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 func ListOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListOrgLabelsFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("org is required"))
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	opt := gitea_sdk.ListOrgLabelsOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     int(page),
-			PageSize: int(pageSize),
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)
@@ -527,22 +525,22 @@ func ListOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list %v/labels err: %v", org, err))
 	}
-	return to.TextResult(labels)
+	return to.TextResult(slimLabels(labels))
 }
 
 func CreateOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateOrgLabelFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("org is required"))
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("name is required"))
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
-	color, ok := req.GetArguments()["color"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("color is required"))
+	color, err := params.GetString(req.GetArguments(), "color")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	description, _ := req.GetArguments()["description"].(string)
 	exclusive, _ := req.GetArguments()["exclusive"].(bool)
@@ -562,14 +560,14 @@ func CreateOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/labels err: %v", org, err))
 	}
-	return to.TextResult(label)
+	return to.TextResult(slimLabel(label))
 }
 
 func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called EditOrgLabelFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("org is required"))
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, err := params.GetIndex(req.GetArguments(), "id")
 	if err != nil {
@@ -598,14 +596,14 @@ func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("edit %v/labels/%v err: %v", org, id, err))
 	}
-	return to.TextResult(label)
+	return to.TextResult(slimLabel(label))
 }
 
 func DeleteOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteOrgLabelFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok {
-		return to.ErrorResult(errors.New("org is required"))
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil {
+		return to.ErrorResult(err)
 	}
 	id, err := params.GetIndex(req.GetArguments(), "id")
 	if err != nil {

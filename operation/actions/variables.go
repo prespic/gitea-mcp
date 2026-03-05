@@ -38,7 +38,7 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 
 	GetRepoActionVariableTool = mcp.NewTool(
@@ -80,7 +80,7 @@ var (
 		mcp.WithDescription("List organization Actions variables"),
 		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(100), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 
 	GetOrgActionVariableTool = mcp.NewTool(
@@ -132,23 +132,22 @@ func init() {
 
 func ListRepoActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListRepoActionVariablesFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	query := url.Values{}
-	query.Set("page", strconv.Itoa(int(page)))
-	query.Set("limit", strconv.Itoa(int(pageSize)))
+	query.Set("page", strconv.Itoa(page))
+	query.Set("limit", strconv.Itoa(pageSize))
 
 	var result any
-	_, err := gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/actions/variables", url.PathEscape(owner), url.PathEscape(repo)), query, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/actions/variables", url.PathEscape(owner), url.PathEscape(repo)), query, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list repo action variables err: %v", err))
 	}
@@ -157,16 +156,16 @@ func ListRepoActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*m
 
 func GetRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetRepoActionVariableFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
 
@@ -183,20 +182,20 @@ func GetRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp
 
 func CreateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateRepoActionVariableFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	value, ok := req.GetArguments()["value"].(string)
-	if !ok || value == "" {
+	value, err := params.GetString(req.GetArguments(), "value")
+	if err != nil || value == "" {
 		return to.ErrorResult(errors.New("value is required"))
 	}
 
@@ -213,20 +212,20 @@ func CreateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 
 func UpdateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UpdateRepoActionVariableFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	value, ok := req.GetArguments()["value"].(string)
-	if !ok || value == "" {
+	value, err := params.GetString(req.GetArguments(), "value")
+	if err != nil || value == "" {
 		return to.ErrorResult(errors.New("value is required"))
 	}
 
@@ -243,16 +242,16 @@ func UpdateRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 
 func DeleteRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteRepoActionVariableFn")
-	owner, ok := req.GetArguments()["owner"].(string)
-	if !ok || owner == "" {
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil || owner == "" {
 		return to.ErrorResult(errors.New("owner is required"))
 	}
-	repo, ok := req.GetArguments()["repo"].(string)
-	if !ok || repo == "" {
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil || repo == "" {
 		return to.ErrorResult(errors.New("repo is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
 
@@ -269,19 +268,18 @@ func DeleteRepoActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*
 
 func ListOrgActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListOrgActionVariablesFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	page := params.GetOptionalInt(req.GetArguments(), "page", 1)
-	pageSize := params.GetOptionalInt(req.GetArguments(), "pageSize", 100)
+	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 	variables, _, err := client.ListOrgActionVariable(org, gitea_sdk.ListOrgActionVariableOption{
-		ListOptions: gitea_sdk.ListOptions{Page: int(page), PageSize: int(pageSize)},
+		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list org action variables err: %v", err))
@@ -291,12 +289,12 @@ func ListOrgActionVariablesFn(ctx context.Context, req mcp.CallToolRequest) (*mc
 
 func GetOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called GetOrgActionVariableFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
 
@@ -313,16 +311,16 @@ func GetOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 func CreateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called CreateOrgActionVariableFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	value, ok := req.GetArguments()["value"].(string)
-	if !ok || value == "" {
+	value, err := params.GetString(req.GetArguments(), "value")
+	if err != nil || value == "" {
 		return to.ErrorResult(errors.New("value is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
@@ -344,16 +342,16 @@ func CreateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 
 func UpdateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called UpdateOrgActionVariableFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
-	value, ok := req.GetArguments()["value"].(string)
-	if !ok || value == "" {
+	value, err := params.GetString(req.GetArguments(), "value")
+	if err != nil || value == "" {
 		return to.ErrorResult(errors.New("value is required"))
 	}
 	description, _ := req.GetArguments()["description"].(string)
@@ -374,16 +372,16 @@ func UpdateOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*m
 
 func DeleteOrgActionVariableFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called DeleteOrgActionVariableFn")
-	org, ok := req.GetArguments()["org"].(string)
-	if !ok || org == "" {
+	org, err := params.GetString(req.GetArguments(), "org")
+	if err != nil || org == "" {
 		return to.ErrorResult(errors.New("org is required"))
 	}
-	name, ok := req.GetArguments()["name"].(string)
-	if !ok || name == "" {
+	name, err := params.GetString(req.GetArguments(), "name")
+	if err != nil || name == "" {
 		return to.ErrorResult(errors.New("name is required"))
 	}
 
-	_, err := gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/variables/%s", url.PathEscape(org), url.PathEscape(name)), nil, nil, nil)
+	_, err = gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("orgs/%s/actions/variables/%s", url.PathEscape(org), url.PathEscape(name)), nil, nil, nil)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("delete org action variable err: %v", err))
 	}
