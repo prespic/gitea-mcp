@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	// GetMyUserInfoToolName is the unique tool name used for MCP registration and lookup of the get_my_user_info command.
-	GetMyUserInfoToolName = "get_my_user_info"
+	// GetMyUserInfoToolName is the unique tool name used for MCP registration and lookup of the get_me command.
+	GetMyUserInfoToolName = "get_me"
 	// GetUserOrgsToolName is the unique tool name used for MCP registration and lookup of the get_user_orgs command.
 	GetUserOrgsToolName = "get_user_orgs"
 
@@ -39,12 +39,12 @@ var (
 	)
 
 	// GetUserOrgsTool is the MCP tool for listing organizations for the authenticated user.
-	// It supports pagination via "page" and "pageSize" arguments with default values specified above.
+	// It supports pagination via "page" and "perPage" arguments with default values specified above.
 	GetUserOrgsTool = mcp.NewTool(
 		GetUserOrgsToolName,
 		mcp.WithDescription("Get organizations associated with the authenticated user"),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(defaultPage)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(defaultPageSize)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(defaultPageSize)),
 	)
 )
 
@@ -66,7 +66,7 @@ func registerTools() {
 	}
 }
 
-// GetUserInfoFn is the handler for "get_my_user_info" MCP tool requests.
+// GetUserInfoFn is the handler for "get_me" MCP tool requests.
 // Logs invocation, fetches current user info from gitea, wraps result for MCP.
 func GetUserInfoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("[User] Called GetUserInfoFn")

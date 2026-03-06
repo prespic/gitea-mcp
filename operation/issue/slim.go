@@ -114,3 +114,20 @@ func slimComments(comments []*gitea_sdk.Comment) []map[string]any {
 	}
 	return out
 }
+
+func slimLabels(labels []*gitea_sdk.Label) []map[string]any {
+	out := make([]map[string]any, 0, len(labels))
+	for _, l := range labels {
+		if l == nil {
+			continue
+		}
+		out = append(out, map[string]any{
+			"id":          l.ID,
+			"name":        l.Name,
+			"color":       l.Color,
+			"description": l.Description,
+			"exclusive":   l.Exclusive,
+		})
+	}
+	return out
+}

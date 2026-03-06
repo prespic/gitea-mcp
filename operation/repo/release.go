@@ -67,7 +67,7 @@ var (
 		mcp.WithBoolean("is_draft", mcp.Description("Whether the release is draft"), mcp.DefaultBool(false)),
 		mcp.WithBoolean("is_pre_release", mcp.Description("Whether the release is pre-release"), mcp.DefaultBool(false)),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(20), mcp.Min(1)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(20), mcp.Min(1)),
 	)
 )
 
@@ -242,7 +242,7 @@ func ListReleasesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 		pIsPreRelease = new(isPreRelease)
 	}
 	page := params.GetOptionalInt(args, "page", 1)
-	pageSize := params.GetOptionalInt(args, "pageSize", 20)
+	pageSize := params.GetOptionalInt(args, "perPage", 20)
 
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {

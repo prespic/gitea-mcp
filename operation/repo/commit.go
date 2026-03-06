@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	ListRepoCommitsToolName = "list_repo_commits"
+	ListRepoCommitsToolName = "list_commits"
 )
 
 var ListRepoCommitsTool = mcp.NewTool(
@@ -26,7 +26,7 @@ var ListRepoCommitsTool = mcp.NewTool(
 	mcp.WithString("sha", mcp.Description("SHA or branch to start listing commits from")),
 	mcp.WithString("path", mcp.Description("path indicates that only commits that include the path's file/dir should be returned.")),
 	mcp.WithNumber("page", mcp.Required(), mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-	mcp.WithNumber("page_size", mcp.Required(), mcp.Description("page size"), mcp.DefaultNumber(30), mcp.Min(1)),
+	mcp.WithNumber("perPage", mcp.Required(), mcp.Description("results per page"), mcp.DefaultNumber(30), mcp.Min(1)),
 )
 
 func init() {
@@ -51,7 +51,7 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	pageSize, err := params.GetIndex(args, "page_size")
+	pageSize, err := params.GetIndex(args, "perPage")
 	if err != nil {
 		return to.ErrorResult(err)
 	}

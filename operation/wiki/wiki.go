@@ -18,97 +18,80 @@ import (
 var Tool = tool.New()
 
 const (
-	ListWikiPagesToolName    = "list_wiki_pages"
-	GetWikiPageToolName      = "get_wiki_page"
-	GetWikiRevisionsToolName = "get_wiki_revisions"
-	CreateWikiPageToolName   = "create_wiki_page"
-	UpdateWikiPageToolName   = "update_wiki_page"
-	DeleteWikiPageToolName   = "delete_wiki_page"
+	WikiReadToolName  = "wiki_read"
+	WikiWriteToolName = "wiki_write"
 )
 
 var (
-	ListWikiPagesTool = mcp.NewTool(
-		ListWikiPagesToolName,
-		mcp.WithDescription("List all wiki pages in a repository"),
+	WikiReadTool = mcp.NewTool(
+		WikiReadToolName,
+		mcp.WithDescription("Read wiki page information. Use method 'list' to list pages, 'get' to get page content, 'get_revisions' for revision history."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("list", "get", "get_revisions")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithString("pageName", mcp.Description("wiki page name (required for 'get', 'get_revisions')")),
 	)
 
-	GetWikiPageTool = mcp.NewTool(
-		GetWikiPageToolName,
-		mcp.WithDescription("Get a wiki page content and metadata"),
+	WikiWriteTool = mcp.NewTool(
+		WikiWriteToolName,
+		mcp.WithDescription("Create, update, or delete wiki pages."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("create", "update", "delete")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("pageName", mcp.Required(), mcp.Description("wiki page name")),
-	)
-
-	GetWikiRevisionsTool = mcp.NewTool(
-		GetWikiRevisionsToolName,
-		mcp.WithDescription("Get revisions history of a wiki page"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("pageName", mcp.Required(), mcp.Description("wiki page name")),
-	)
-
-	CreateWikiPageTool = mcp.NewTool(
-		CreateWikiPageToolName,
-		mcp.WithDescription("Create a new wiki page"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("title", mcp.Required(), mcp.Description("wiki page title")),
-		mcp.WithString("content_base64", mcp.Required(), mcp.Description("page content, base64 encoded")),
-		mcp.WithString("message", mcp.Description("commit message (optional)")),
-	)
-
-	UpdateWikiPageTool = mcp.NewTool(
-		UpdateWikiPageToolName,
-		mcp.WithDescription("Update an existing wiki page"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("pageName", mcp.Required(), mcp.Description("current wiki page name")),
-		mcp.WithString("title", mcp.Description("new page title (optional)")),
-		mcp.WithString("content_base64", mcp.Required(), mcp.Description("page content, base64 encoded")),
-		mcp.WithString("message", mcp.Description("commit message (optional)")),
-	)
-
-	DeleteWikiPageTool = mcp.NewTool(
-		DeleteWikiPageToolName,
-		mcp.WithDescription("Delete a wiki page"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("pageName", mcp.Required(), mcp.Description("wiki page name to delete")),
+		mcp.WithString("pageName", mcp.Description("wiki page name (required for 'update', 'delete')")),
+		mcp.WithString("title", mcp.Description("wiki page title (required for 'create', optional for 'update')")),
+		mcp.WithString("content_base64", mcp.Description("page content, base64 encoded (required for 'create', 'update')")),
+		mcp.WithString("message", mcp.Description("commit message")),
 	)
 )
 
 func init() {
 	Tool.RegisterRead(server.ServerTool{
-		Tool:    ListWikiPagesTool,
-		Handler: ListWikiPagesFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetWikiPageTool,
-		Handler: GetWikiPageFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetWikiRevisionsTool,
-		Handler: GetWikiRevisionsFn,
+		Tool:    WikiReadTool,
+		Handler: wikiReadFn,
 	})
 	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateWikiPageTool,
-		Handler: CreateWikiPageFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    UpdateWikiPageTool,
-		Handler: UpdateWikiPageFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    DeleteWikiPageTool,
-		Handler: DeleteWikiPageFn,
+		Tool:    WikiWriteTool,
+		Handler: wikiWriteFn,
 	})
 }
 
-func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListWikiPagesFn")
+func wikiReadFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "list":
+		return listWikiPagesFn(ctx, req)
+	case "get":
+		return getWikiPageFn(ctx, req)
+	case "get_revisions":
+		return getWikiRevisionsFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func wikiWriteFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "create":
+		return createWikiPageFn(ctx, req)
+	case "update":
+		return updateWikiPageFn(ctx, req)
+	case "delete":
+		return deleteWikiPageFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func listWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listWikiPagesFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -119,9 +102,8 @@ func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 		return to.ErrorResult(err)
 	}
 
-	// Use direct HTTP request because SDK does not support yet wikis
 	var result any
-	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.QueryEscape(owner), url.QueryEscape(repo)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/pages", url.PathEscape(owner), url.PathEscape(repo)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("list wiki pages err: %v", err))
 	}
@@ -129,8 +111,8 @@ func ListWikiPagesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(result)
 }
 
-func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetWikiPageFn")
+func getWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getWikiPageFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -146,7 +128,7 @@ func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	}
 
 	var result any
-	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki page err: %v", err))
 	}
@@ -154,8 +136,8 @@ func GetWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	return to.TextResult(result)
 }
 
-func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetWikiRevisionsFn")
+func getWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getWikiRevisionsFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -171,7 +153,7 @@ func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	}
 
 	var result any
-	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, &result)
+	_, err = gitea.DoJSON(ctx, "GET", fmt.Sprintf("repos/%s/%s/wiki/revisions/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(pageName)), nil, nil, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get wiki revisions err: %v", err))
 	}
@@ -179,8 +161,8 @@ func GetWikiRevisionsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	return to.TextResult(result)
 }
 
-func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateWikiPageFn")
+func createWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createWikiPageFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -211,7 +193,7 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	}
 
 	var result any
-	_, err = gitea.DoJSON(ctx, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.QueryEscape(owner), url.QueryEscape(repo)), nil, requestBody, &result)
+	_, err = gitea.DoJSON(ctx, "POST", fmt.Sprintf("repos/%s/%s/wiki/new", url.PathEscape(owner), url.PathEscape(repo)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create wiki page err: %v", err))
 	}
@@ -219,8 +201,8 @@ func CreateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(result)
 }
 
-func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called UpdateWikiPageFn")
+func updateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called updateWikiPageFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -247,7 +229,6 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if title, ok := args["title"].(string); ok && title != "" {
 		requestBody["title"] = title
 	} else {
-		// Utiliser pageName comme fallback pour éviter "unnamed"
 		requestBody["title"] = pageName
 	}
 
@@ -258,7 +239,7 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	}
 
 	var result any
-	_, err = gitea.DoJSON(ctx, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, requestBody, &result)
+	_, err = gitea.DoJSON(ctx, "PATCH", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(pageName)), nil, requestBody, &result)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("update wiki page err: %v", err))
 	}
@@ -266,8 +247,8 @@ func UpdateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(result)
 }
 
-func DeleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteWikiPageFn")
+func deleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteWikiPageFn")
 	args := req.GetArguments()
 	owner, err := params.GetString(args, "owner")
 	if err != nil {
@@ -282,7 +263,7 @@ func DeleteWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 		return to.ErrorResult(err)
 	}
 
-	_, err = gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.QueryEscape(owner), url.QueryEscape(repo), url.QueryEscape(pageName)), nil, nil, nil)
+	_, err = gitea.DoJSON(ctx, "DELETE", fmt.Sprintf("repos/%s/%s/wiki/page/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(pageName)), nil, nil, nil)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("delete wiki page err: %v", err))
 	}

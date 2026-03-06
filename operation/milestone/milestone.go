@@ -18,89 +18,83 @@ import (
 var Tool = tool.New()
 
 const (
-	GetMilestoneToolName    = "get_milestone"
-	ListMilestonesToolName  = "list_milestones"
-	CreateMilestoneToolName = "create_milestone"
-	EditMilestoneToolName   = "edit_milestone"
-	DeleteMilestoneToolName = "delete_milestone"
+	MilestoneReadToolName  = "milestone_read"
+	MilestoneWriteToolName = "milestone_write"
 )
 
 var (
-	GetMilestoneTool = mcp.NewTool(
-		GetMilestoneToolName,
-		mcp.WithDescription("get milestone by id"),
+	MilestoneReadTool = mcp.NewTool(
+		MilestoneReadToolName,
+		mcp.WithDescription("Read milestone information. Use method 'get' to get a specific milestone, 'list' to list milestones."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("get", "list")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("milestone id")),
-	)
-
-	ListMilestonesTool = mcp.NewTool(
-		ListMilestonesToolName,
-		mcp.WithDescription("List milestones"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("state", mcp.Description("milestone state"), mcp.DefaultString("all")),
-		mcp.WithString("name", mcp.Description("milestone name")),
+		mcp.WithNumber("id", mcp.Description("milestone id (required for 'get')")),
+		mcp.WithString("state", mcp.Description("milestone state (for 'list')"), mcp.DefaultString("all")),
+		mcp.WithString("name", mcp.Description("milestone name filter (for 'list')")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
 
-	CreateMilestoneTool = mcp.NewTool(
-		CreateMilestoneToolName,
-		mcp.WithDescription("create milestone"),
+	MilestoneWriteTool = mcp.NewTool(
+		MilestoneWriteToolName,
+		mcp.WithDescription("Create, edit, or delete milestones."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("create", "edit", "delete")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("title", mcp.Required(), mcp.Description("milestone title")),
+		mcp.WithNumber("id", mcp.Description("milestone id (required for 'edit', 'delete')")),
+		mcp.WithString("title", mcp.Description("milestone title (required for 'create')")),
 		mcp.WithString("description", mcp.Description("milestone description")),
 		mcp.WithString("due_on", mcp.Description("due date")),
-	)
-
-	EditMilestoneTool = mcp.NewTool(
-		EditMilestoneToolName,
-		mcp.WithDescription("edit milestone"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("milestone id")),
-		mcp.WithString("title", mcp.Description("milestone title")),
-		mcp.WithString("description", mcp.Description("milestone description")),
-		mcp.WithString("due_on", mcp.Description("due date")),
-		mcp.WithString("state", mcp.Description("milestone state, one of open, closed")),
-	)
-
-	DeleteMilestoneTool = mcp.NewTool(
-		DeleteMilestoneToolName,
-		mcp.WithDescription("delete milestone"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("milestone id")),
+		mcp.WithString("state", mcp.Description("milestone state, one of open, closed (for 'edit')")),
 	)
 )
 
 func init() {
 	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetMilestoneTool,
-		Handler: GetMilestoneFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
-		Tool:    ListMilestonesTool,
-		Handler: ListMilestonesFn,
+		Tool:    MilestoneReadTool,
+		Handler: milestoneReadFn,
 	})
 	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateMilestoneTool,
-		Handler: CreateMilestoneFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    EditMilestoneTool,
-		Handler: EditMilestoneFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    DeleteMilestoneTool,
-		Handler: DeleteMilestoneFn,
+		Tool:    MilestoneWriteTool,
+		Handler: milestoneWriteFn,
 	})
 }
 
-func GetMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetMilestoneFn")
+func milestoneReadFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "get":
+		return getMilestoneFn(ctx, req)
+	case "list":
+		return listMilestonesFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func milestoneWriteFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "create":
+		return createMilestoneFn(ctx, req)
+	case "edit":
+		return editMilestoneFn(ctx, req)
+	case "delete":
+		return deleteMilestoneFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func getMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getMilestoneFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -125,8 +119,8 @@ func GetMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	return to.TextResult(slimMilestone(milestone))
 }
 
-func ListMilestonesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListMilestonesFn")
+func listMilestonesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listMilestonesFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -157,8 +151,8 @@ func ListMilestonesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(slimMilestones(milestones))
 }
 
-func CreateMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateMilestoneFn")
+func createMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createMilestoneFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -193,8 +187,8 @@ func CreateMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	return to.TextResult(slimMilestone(milestone))
 }
 
-func EditMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called EditMilestoneFn")
+func editMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called editMilestoneFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -235,8 +229,8 @@ func EditMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(slimMilestone(milestone))
 }
 
-func DeleteMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteMilestoneFn")
+func deleteMilestoneFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteMilestoneFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)

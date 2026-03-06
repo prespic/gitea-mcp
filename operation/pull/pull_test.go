@@ -13,7 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func TestEditPullRequestFn(t *testing.T) {
+func Test_editPullRequestFn(t *testing.T) {
 	const (
 		owner = "octo"
 		repo  = "demo"
@@ -87,9 +87,9 @@ func TestEditPullRequestFn(t *testing.T) {
 				},
 			}
 
-			result, err := EditPullRequestFn(context.Background(), req)
+			result, err := editPullRequestFn(context.Background(), req)
 			if err != nil {
-				t.Fatalf("EditPullRequestFn() error = %v", err)
+				t.Fatalf("editPullRequestFn() error = %v", err)
 			}
 
 			mu.Lock()
@@ -127,7 +127,7 @@ func TestEditPullRequestFn(t *testing.T) {
 	}
 }
 
-func TestMergePullRequestFn(t *testing.T) {
+func Test_mergePullRequestFn(t *testing.T) {
 	const (
 		owner = "octo"
 		repo  = "demo"
@@ -202,9 +202,9 @@ func TestMergePullRequestFn(t *testing.T) {
 				},
 			}
 
-			result, err := MergePullRequestFn(context.Background(), req)
+			result, err := mergePullRequestFn(context.Background(), req)
 			if err != nil {
-				t.Fatalf("MergePullRequestFn() error = %v", err)
+				t.Fatalf("mergePullRequestFn() error = %v", err)
 			}
 
 			mu.Lock()
@@ -254,7 +254,7 @@ func TestMergePullRequestFn(t *testing.T) {
 	}
 }
 
-func TestGetPullRequestDiffFn(t *testing.T) {
+func Test_getPullRequestDiffFn(t *testing.T) {
 	const (
 		owner   = "octo"
 		repo    = "demo"
@@ -334,9 +334,9 @@ func TestGetPullRequestDiffFn(t *testing.T) {
 				},
 			}
 
-			result, err := GetPullRequestDiffFn(context.Background(), req)
+			result, err := getPullRequestDiffFn(context.Background(), req)
 			if err != nil {
-				t.Fatalf("GetPullRequestDiffFn() error = %v", err)
+				t.Fatalf("getPullRequestDiffFn() error = %v", err)
 			}
 
 			select {

@@ -18,24 +18,12 @@ import (
 var Tool = tool.New()
 
 const (
-	GetIssueByIndexToolName         = "get_issue_by_index"
-	ListRepoIssuesToolName          = "list_repo_issues"
-	CreateIssueToolName             = "create_issue"
-	CreateIssueCommentToolName      = "create_issue_comment"
-	EditIssueToolName               = "edit_issue"
-	EditIssueCommentToolName        = "edit_issue_comment"
-	GetIssueCommentsByIndexToolName = "get_issue_comments_by_index"
+	ListRepoIssuesToolName = "list_issues"
+	IssueReadToolName      = "issue_read"
+	IssueWriteToolName     = "issue_write"
 )
 
 var (
-	GetIssueByIndexTool = mcp.NewTool(
-		GetIssueByIndexToolName,
-		mcp.WithDescription("get issue by index"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository issue index")),
-	)
-
 	ListRepoIssuesTool = mcp.NewTool(
 		ListRepoIssuesToolName,
 		mcp.WithDescription("List repository issues"),
@@ -43,91 +31,99 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("state", mcp.Description("issue state"), mcp.DefaultString("all")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
 
-	CreateIssueTool = mcp.NewTool(
-		CreateIssueToolName,
-		mcp.WithDescription("create issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("title", mcp.Required(), mcp.Description("issue title")),
-		mcp.WithString("body", mcp.Required(), mcp.Description("issue body")),
-	)
-
-	CreateIssueCommentTool = mcp.NewTool(
-		CreateIssueCommentToolName,
-		mcp.WithDescription("create issue comment"),
+	IssueReadTool = mcp.NewTool(
+		IssueReadToolName,
+		mcp.WithDescription("Get information about a specific issue. Use method 'get' for issue details, 'get_comments' for issue comments, 'get_labels' for issue labels."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("get", "get_comments", "get_labels")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository issue index")),
-		mcp.WithString("body", mcp.Required(), mcp.Description("issue comment body")),
 	)
 
-	EditIssueTool = mcp.NewTool(
-		EditIssueToolName,
-		mcp.WithDescription("edit issue"),
+	IssueWriteTool = mcp.NewTool(
+		IssueWriteToolName,
+		mcp.WithDescription("Create or update issues and comments, manage labels. Use method 'create' to create an issue, 'update' to edit, 'add_comment'/'edit_comment' for comments, 'add_labels'/'remove_label'/'replace_labels'/'clear_labels' for label management."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("create", "update", "add_comment", "edit_comment", "add_labels", "remove_label", "replace_labels", "clear_labels")),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository issue index")),
-		mcp.WithString("title", mcp.Description("issue title"), mcp.DefaultString("")),
-		mcp.WithString("body", mcp.Description("issue body content")),
-		mcp.WithArray("assignees", mcp.Description("usernames to assign to this issue"), mcp.Items(map[string]any{"type": "string"})),
-		mcp.WithNumber("milestone", mcp.Description("milestone number")),
-		mcp.WithString("state", mcp.Description("issue state, one of open, closed, all")),
-	)
-
-	EditIssueCommentTool = mcp.NewTool(
-		EditIssueCommentToolName,
-		mcp.WithDescription("edit issue comment"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("commentID", mcp.Required(), mcp.Description("id of issue comment")),
-		mcp.WithString("body", mcp.Required(), mcp.Description("issue comment body")),
-	)
-
-	GetIssueCommentsByIndexTool = mcp.NewTool(
-		GetIssueCommentsByIndexToolName,
-		mcp.WithDescription("get issue comment by index"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("repository issue index")),
+		mcp.WithNumber("index", mcp.Description("issue index (required for all methods except 'create')")),
+		mcp.WithString("title", mcp.Description("issue title (required for 'create')")),
+		mcp.WithString("body", mcp.Description("issue/comment body (required for 'create', 'add_comment', 'edit_comment')")),
+		mcp.WithArray("assignees", mcp.Description("usernames to assign (for 'create', 'update')"), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithNumber("milestone", mcp.Description("milestone number (for 'create', 'update')")),
+		mcp.WithString("state", mcp.Description("issue state, one of open, closed, all (for 'update')")),
+		mcp.WithNumber("commentID", mcp.Description("id of issue comment (required for 'edit_comment')")),
+		mcp.WithArray("labels", mcp.Description("array of label IDs (for 'add_labels', 'replace_labels')"), mcp.Items(map[string]any{"type": "number"})),
+		mcp.WithNumber("label_id", mcp.Description("label ID to remove (required for 'remove_label')")),
 	)
 )
 
 func init() {
 	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetIssueByIndexTool,
-		Handler: GetIssueByIndexFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
 		Tool:    ListRepoIssuesTool,
-		Handler: ListRepoIssuesFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateIssueTool,
-		Handler: CreateIssueFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateIssueCommentTool,
-		Handler: CreateIssueCommentFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    EditIssueTool,
-		Handler: EditIssueFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    EditIssueCommentTool,
-		Handler: EditIssueCommentFn,
+		Handler: listRepoIssuesFn,
 	})
 	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetIssueCommentsByIndexTool,
-		Handler: GetIssueCommentsByIndexFn,
+		Tool:    IssueReadTool,
+		Handler: issueReadFn,
+	})
+	Tool.RegisterWrite(server.ServerTool{
+		Tool:    IssueWriteTool,
+		Handler: issueWriteFn,
 	})
 }
 
-func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetIssueByIndexFn")
+func issueReadFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	method, err := params.GetString(args, "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "get":
+		return getIssueByIndexFn(ctx, req)
+	case "get_comments":
+		return getIssueCommentsByIndexFn(ctx, req)
+	case "get_labels":
+		return getIssueLabelsFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func issueWriteFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	method, err := params.GetString(args, "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "create":
+		return createIssueFn(ctx, req)
+	case "update":
+		return editIssueFn(ctx, req)
+	case "add_comment":
+		return createIssueCommentFn(ctx, req)
+	case "edit_comment":
+		return editIssueCommentFn(ctx, req)
+	case "add_labels":
+		return addIssueLabelsFn(ctx, req)
+	case "remove_label":
+		return removeIssueLabelFn(ctx, req)
+	case "replace_labels":
+		return replaceIssueLabelsFn(ctx, req)
+	case "clear_labels":
+		return clearIssueLabelsFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func getIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getIssueByIndexFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -152,7 +148,7 @@ func GetIssueByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	return to.TextResult(slimIssue(issue))
 }
 
-func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func listRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called ListIssuesFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
@@ -185,8 +181,8 @@ func ListRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(slimIssues(issues))
 }
 
-func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateIssueFn")
+func createIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createIssueFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -207,10 +203,17 @@ func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	issue, _, err := client.CreateIssue(owner, repo, gitea_sdk.CreateIssueOption{
+	opt := gitea_sdk.CreateIssueOption{
 		Title: title,
 		Body:  body,
-	})
+	}
+	opt.Assignees = params.GetStringSlice(req.GetArguments(), "assignees")
+	if val, exists := req.GetArguments()["milestone"]; exists {
+		if milestone, ok := params.ToInt64(val); ok {
+			opt.Milestone = milestone
+		}
+	}
+	issue, _, err := client.CreateIssue(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/%v/issue err: %v", owner, repo, err))
 	}
@@ -218,8 +221,8 @@ func CreateIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	return to.TextResult(slimIssue(issue))
 }
 
-func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateIssueCommentFn")
+func createIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createIssueCommentFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -251,8 +254,8 @@ func CreateIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	return to.TextResult(slimComment(issueComment))
 }
 
-func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called EditIssueFn")
+func editIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called editIssueFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -299,8 +302,8 @@ func EditIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	return to.TextResult(slimIssue(issue))
 }
 
-func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called EditIssueCommentFn")
+func editIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called editIssueCommentFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -332,8 +335,8 @@ func EditIssueCommentFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	return to.TextResult(slimComment(issueComment))
 }
 
-func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetIssueCommentsByIndexFn")
+func getIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getIssueCommentsByIndexFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -357,4 +360,148 @@ func GetIssueCommentsByIndexFn(ctx context.Context, req mcp.CallToolRequest) (*m
 	}
 
 	return to.TextResult(slimComments(issue))
+}
+
+func getIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getIssueLabelsFn")
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	labels, _, err := client.GetIssueLabels(owner, repo, index, gitea_sdk.ListLabelsOptions{})
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get %v/%v/issues/%v/labels err: %v", owner, repo, index, err))
+	}
+	return to.TextResult(slimLabels(labels))
+}
+
+// Issue label operations (moved from label package)
+
+func addIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called addIssueLabelsFn")
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	labels, err := params.GetInt64Slice(req.GetArguments(), "labels")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issueLabels, _, err := client.AddIssueLabels(owner, repo, index, gitea_sdk.IssueLabelsOption{Labels: labels})
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("add labels to %v/%v/issue/%v err: %v", owner, repo, index, err))
+	}
+	return to.TextResult(slimLabels(issueLabels))
+}
+
+func replaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called replaceIssueLabelsFn")
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	labels, err := params.GetInt64Slice(req.GetArguments(), "labels")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issueLabels, _, err := client.ReplaceIssueLabels(owner, repo, index, gitea_sdk.IssueLabelsOption{Labels: labels})
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("replace labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
+	}
+	return to.TextResult(slimLabels(issueLabels))
+}
+
+func clearIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called clearIssueLabelsFn")
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, err = client.ClearIssueLabels(owner, repo, index)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("clear labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
+	}
+	return to.TextResult("Labels cleared successfully")
+}
+
+func removeIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called removeIssueLabelFn")
+	owner, err := params.GetString(req.GetArguments(), "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(req.GetArguments(), "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	index, err := params.GetIndex(req.GetArguments(), "index")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	labelID, err := params.GetIndex(req.GetArguments(), "label_id")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	_, err = client.DeleteIssueLabel(owner, repo, index, labelID)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", labelID, owner, repo, index, err))
+	}
+	return to.TextResult("Label removed successfully")
 }

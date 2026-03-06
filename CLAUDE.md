@@ -47,17 +47,24 @@ This is a **Gitea MCP (Model Context Protocol) Server** written in Go that provi
 
 ## Available Tools
 
-The server provides 40+ MCP tools covering:
+The server provides 45 MCP tools covering:
 
-- **User**: get_my_user_info, get_user_orgs, search_users
-- **Repository**: create_repo, fork_repo, list_my_repos, search_repos
-- **Branches/Tags**: create_branch, delete_branch, list_branches, create_tag, list_tags
-- **Files**: get_file_content, create_file, update_file, delete_file, get_dir_content
-- **Issues**: create_issue, list_repo_issues, create_issue_comment, edit_issue
-- **Pull Requests**: create_pull_request, list_repo_pull_requests, get_pull_request_by_index
-- **Releases**: create_release, list_releases, get_latest_release
-- **Wiki**: create_wiki_page, update_wiki_page, list_wiki_pages
-- **Search**: search_repos, search_users, search_org_teams
+- **User**: get_me, get_user_orgs
+- **Search**: search_users, search_repos, search_org_teams
+- **Repository**: create_repo, fork_repo, list_my_repos
+- **Branches**: list_branches, create_branch, delete_branch
+- **Tags**: list_tags, get_tag, create_tag, delete_tag
+- **Files**: get_file_contents, get_dir_contents, create_or_update_file, delete_file
+- **Commits**: list_commits
+- **Issues**: list_issues, issue_read, issue_write
+- **Pull Requests**: list_pull_requests, pull_request_read, pull_request_write, pull_request_review_write
+- **Labels**: label_read, label_write
+- **Milestones**: milestone_read, milestone_write
+- **Releases**: list_releases, get_release, get_latest_release, create_release, delete_release
+- **Wiki**: wiki_read, wiki_write
+- **Time Tracking**: timetracking_read, timetracking_write
+- **Actions Runs**: actions_run_read, actions_run_write
+- **Actions Config**: actions_config_read, actions_config_write
 - **Version**: get_gitea_mcp_server_version
 
 ## Common Development Patterns

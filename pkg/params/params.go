@@ -41,9 +41,9 @@ func GetStringSlice(args map[string]any, key string) []string {
 	return out
 }
 
-// GetPagination extracts page and pageSize parameters, returning them as ints.
+// GetPagination extracts page and perPage parameters, returning them as ints.
 func GetPagination(args map[string]any, defaultPageSize int64) (page, pageSize int) {
-	return int(GetOptionalInt(args, "page", 1)), int(GetOptionalInt(args, "pageSize", defaultPageSize))
+	return int(GetOptionalInt(args, "page", 1)), int(GetOptionalInt(args, "perPage", defaultPageSize))
 }
 
 // ToInt64 converts a value to int64, accepting both float64 (JSON number) and
@@ -82,6 +82,23 @@ func GetIndex(args map[string]any, key string) (int64, error) {
 	}
 
 	return 0, fmt.Errorf("%s must be a number or numeric string", key)
+}
+
+// GetInt64Slice extracts a required int64 slice parameter from MCP tool arguments.
+func GetInt64Slice(args map[string]any, key string) ([]int64, error) {
+	raw, ok := args[key].([]any)
+	if !ok {
+		return nil, fmt.Errorf("%s (array of IDs) is required", key)
+	}
+	out := make([]int64, 0, len(raw))
+	for _, v := range raw {
+		id, ok := ToInt64(v)
+		if !ok {
+			return nil, fmt.Errorf("invalid ID in %s array", key)
+		}
+		out = append(out, id)
+	}
+	return out, nil
 }
 
 // GetOptionalInt extracts an optional integer parameter from MCP tool arguments.

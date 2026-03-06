@@ -19,114 +19,83 @@ import (
 var Tool = tool.New()
 
 const (
-	// Stopwatch tools
-	StartStopwatchToolName   = "start_stopwatch"
-	StopStopwatchToolName    = "stop_stopwatch"
-	DeleteStopwatchToolName  = "delete_stopwatch"
-	GetMyStopwatchesToolName = "get_my_stopwatches"
-
-	// Tracked time tools
-	ListTrackedTimesToolName  = "list_tracked_times"
-	AddTrackedTimeToolName    = "add_tracked_time"
-	DeleteTrackedTimeToolName = "delete_tracked_time"
-	ListRepoTimesToolName     = "list_repo_times"
-	GetMyTimesToolName        = "get_my_times"
+	TimetrackingReadToolName  = "timetracking_read"
+	TimetrackingWriteToolName = "timetracking_write"
 )
 
 var (
-	// Stopwatch tools
-	StartStopwatchTool = mcp.NewTool(
-		StartStopwatchToolName,
-		mcp.WithDescription("Start a stopwatch on an issue to track time spent"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-	)
-
-	StopStopwatchTool = mcp.NewTool(
-		StopStopwatchToolName,
-		mcp.WithDescription("Stop a running stopwatch on an issue and record the tracked time"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-	)
-
-	DeleteStopwatchTool = mcp.NewTool(
-		DeleteStopwatchToolName,
-		mcp.WithDescription("Delete/cancel a running stopwatch without recording time"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-	)
-
-	GetMyStopwatchesTool = mcp.NewTool(
-		GetMyStopwatchesToolName,
-		mcp.WithDescription("Get all currently running stopwatches for the authenticated user"),
-	)
-
-	// Tracked time tools
-	ListTrackedTimesTool = mcp.NewTool(
-		ListTrackedTimesToolName,
-		mcp.WithDescription("List tracked times for a specific issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
+	TimetrackingReadTool = mcp.NewTool(
+		TimetrackingReadToolName,
+		mcp.WithDescription("Read time tracking data. Use method 'list_issue_times' for issue times, 'list_repo_times' for repository times, 'get_my_stopwatches' for active stopwatches, 'get_my_times' for all your tracked times."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("list_issue_times", "list_repo_times", "get_my_stopwatches", "get_my_times")),
+		mcp.WithString("owner", mcp.Description("repository owner (required for 'list_issue_times', 'list_repo_times')")),
+		mcp.WithString("repo", mcp.Description("repository name (required for 'list_issue_times', 'list_repo_times')")),
+		mcp.WithNumber("index", mcp.Description("issue index (required for 'list_issue_times')")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
 
-	AddTrackedTimeTool = mcp.NewTool(
-		AddTrackedTimeToolName,
-		mcp.WithDescription("Manually add tracked time to an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-		mcp.WithNumber("time", mcp.Required(), mcp.Description("time to add in seconds")),
-	)
-
-	DeleteTrackedTimeTool = mcp.NewTool(
-		DeleteTrackedTimeToolName,
-		mcp.WithDescription("Delete a tracked time entry from an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("tracked time entry ID")),
-	)
-
-	ListRepoTimesTool = mcp.NewTool(
-		ListRepoTimesToolName,
-		mcp.WithDescription("List all tracked times for a repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
-	)
-
-	GetMyTimesTool = mcp.NewTool(
-		GetMyTimesToolName,
-		mcp.WithDescription("Get all tracked times for the authenticated user"),
+	TimetrackingWriteTool = mcp.NewTool(
+		TimetrackingWriteToolName,
+		mcp.WithDescription("Manage time tracking: stopwatches and tracked time entries."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("start_stopwatch", "stop_stopwatch", "delete_stopwatch", "add_time", "delete_time")),
+		mcp.WithString("owner", mcp.Description("repository owner (required for all methods)")),
+		mcp.WithString("repo", mcp.Description("repository name (required for all methods)")),
+		mcp.WithNumber("index", mcp.Description("issue index (required for all methods)")),
+		mcp.WithNumber("time", mcp.Description("time to add in seconds (required for 'add_time')")),
+		mcp.WithNumber("id", mcp.Description("tracked time entry ID (required for 'delete_time')")),
 	)
 )
 
 func init() {
-	// Stopwatch tools
-	Tool.RegisterWrite(server.ServerTool{Tool: StartStopwatchTool, Handler: StartStopwatchFn})
-	Tool.RegisterWrite(server.ServerTool{Tool: StopStopwatchTool, Handler: StopStopwatchFn})
-	Tool.RegisterWrite(server.ServerTool{Tool: DeleteStopwatchTool, Handler: DeleteStopwatchFn})
-	Tool.RegisterRead(server.ServerTool{Tool: GetMyStopwatchesTool, Handler: GetMyStopwatchesFn})
+	Tool.RegisterRead(server.ServerTool{Tool: TimetrackingReadTool, Handler: readFn})
+	Tool.RegisterWrite(server.ServerTool{Tool: TimetrackingWriteTool, Handler: writeFn})
+}
 
-	// Tracked time tools
-	Tool.RegisterRead(server.ServerTool{Tool: ListTrackedTimesTool, Handler: ListTrackedTimesFn})
-	Tool.RegisterWrite(server.ServerTool{Tool: AddTrackedTimeTool, Handler: AddTrackedTimeFn})
-	Tool.RegisterWrite(server.ServerTool{Tool: DeleteTrackedTimeTool, Handler: DeleteTrackedTimeFn})
-	Tool.RegisterRead(server.ServerTool{Tool: ListRepoTimesTool, Handler: ListRepoTimesFn})
-	Tool.RegisterRead(server.ServerTool{Tool: GetMyTimesTool, Handler: GetMyTimesFn})
+func readFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "list_issue_times":
+		return listTrackedTimesFn(ctx, req)
+	case "list_repo_times":
+		return listRepoTimesFn(ctx, req)
+	case "get_my_stopwatches":
+		return getMyStopwatchesFn(ctx, req)
+	case "get_my_times":
+		return getMyTimesFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func writeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	method, err := params.GetString(req.GetArguments(), "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "start_stopwatch":
+		return startStopwatchFn(ctx, req)
+	case "stop_stopwatch":
+		return stopStopwatchFn(ctx, req)
+	case "delete_stopwatch":
+		return deleteStopwatchFn(ctx, req)
+	case "add_time":
+		return addTrackedTimeFn(ctx, req)
+	case "delete_time":
+		return deleteTrackedTimeFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
 }
 
 // Stopwatch handler functions
 
-func StartStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called StartStopwatchFn")
+func startStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called startStopwatchFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -150,8 +119,8 @@ func StartStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(fmt.Sprintf("Stopwatch started on issue %s/%s#%d", owner, repo, index))
 }
 
-func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called StopStopwatchFn")
+func stopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called stopStopwatchFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -175,8 +144,8 @@ func StopStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(fmt.Sprintf("Stopwatch stopped on issue %s/%s#%d - time recorded", owner, repo, index))
 }
 
-func DeleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteStopwatchFn")
+func deleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteStopwatchFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -200,8 +169,8 @@ func DeleteStopwatchFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	return to.TextResult(fmt.Sprintf("Stopwatch deleted/cancelled on issue %s/%s#%d", owner, repo, index))
 }
 
-func GetMyStopwatchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetMyStopwatchesFn")
+func getMyStopwatchesFn(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getMyStopwatchesFn")
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
@@ -218,8 +187,8 @@ func GetMyStopwatchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 
 // Tracked time handler functions
 
-func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListTrackedTimesFn")
+func listTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listTrackedTimesFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -253,8 +222,8 @@ func ListTrackedTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 	return to.TextResult(slimTrackedTimes(times))
 }
 
-func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called AddTrackedTimeFn")
+func addTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called addTrackedTimeFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -285,8 +254,8 @@ func AddTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(slimTrackedTime(trackedTime))
 }
 
-func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteTrackedTimeFn")
+func deleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteTrackedTimeFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -315,8 +284,8 @@ func DeleteTrackedTimeFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	return to.TextResult(fmt.Sprintf("Tracked time entry %d deleted from issue %s/%s#%d", id, owner, repo, index))
 }
 
-func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListRepoTimesFn")
+func listRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listRepoTimesFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -346,8 +315,8 @@ func ListRepoTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(slimTrackedTimes(times))
 }
 
-func GetMyTimesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetMyTimesFn")
+func getMyTimesFn(ctx context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getMyTimesFn")
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))

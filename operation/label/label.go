@@ -2,7 +2,6 @@ package label
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -19,197 +18,93 @@ import (
 var Tool = tool.New()
 
 const (
-	ListRepoLabelsToolName     = "list_repo_labels"
-	GetRepoLabelToolName       = "get_repo_label"
-	CreateRepoLabelToolName    = "create_repo_label"
-	EditRepoLabelToolName      = "edit_repo_label"
-	DeleteRepoLabelToolName    = "delete_repo_label"
-	AddIssueLabelsToolName     = "add_issue_labels"
-	ReplaceIssueLabelsToolName = "replace_issue_labels"
-	ClearIssueLabelsToolName   = "clear_issue_labels"
-	RemoveIssueLabelToolName   = "remove_issue_label"
-	ListOrgLabelsToolName      = "list_org_labels"
-	CreateOrgLabelToolName     = "create_org_label"
-	EditOrgLabelToolName       = "edit_org_label"
-	DeleteOrgLabelToolName     = "delete_org_label"
+	LabelReadToolName  = "label_read"
+	LabelWriteToolName = "label_write"
 )
 
 var (
-	ListRepoLabelsTool = mcp.NewTool(
-		ListRepoLabelsToolName,
-		mcp.WithDescription("Lists all labels for a given repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+	LabelReadTool = mcp.NewTool(
+		LabelReadToolName,
+		mcp.WithDescription("Read label information. Use method 'list_repo_labels' to list repository labels, 'get_repo_label' to get a specific repo label, 'list_org_labels' to list organization labels."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("list_repo_labels", "get_repo_label", "list_org_labels")),
+		mcp.WithString("owner", mcp.Description("repository owner (required for repo methods)")),
+		mcp.WithString("repo", mcp.Description("repository name (required for repo methods)")),
+		mcp.WithString("org", mcp.Description("organization name (required for 'list_org')")),
+		mcp.WithNumber("id", mcp.Description("label ID (required for 'get_repo')")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
 
-	GetRepoLabelTool = mcp.NewTool(
-		GetRepoLabelToolName,
-		mcp.WithDescription("Gets a single label by its ID for a repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("label ID")),
-	)
-
-	CreateRepoLabelTool = mcp.NewTool(
-		CreateRepoLabelToolName,
-		mcp.WithDescription("Creates a new label for a repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithString("name", mcp.Required(), mcp.Description("label name")),
-		mcp.WithString("color", mcp.Required(), mcp.Description("label color (hex code, e.g., #RRGGBB)")),
+	LabelWriteTool = mcp.NewTool(
+		LabelWriteToolName,
+		mcp.WithDescription("Create, edit, or delete labels for repositories or organizations."),
+		mcp.WithString("method", mcp.Required(), mcp.Description("operation to perform"), mcp.Enum("create_repo_label", "edit_repo_label", "delete_repo_label", "create_org_label", "edit_org_label", "delete_org_label")),
+		mcp.WithString("owner", mcp.Description("repository owner (required for repo methods)")),
+		mcp.WithString("repo", mcp.Description("repository name (required for repo methods)")),
+		mcp.WithString("org", mcp.Description("organization name (required for org methods)")),
+		mcp.WithNumber("id", mcp.Description("label ID (required for edit/delete methods)")),
+		mcp.WithString("name", mcp.Description("label name (required for create, optional for edit)")),
+		mcp.WithString("color", mcp.Description("label color hex code e.g. #RRGGBB (required for create, optional for edit)")),
 		mcp.WithString("description", mcp.Description("label description")),
-	)
-
-	EditRepoLabelTool = mcp.NewTool(
-		EditRepoLabelToolName,
-		mcp.WithDescription("Edits an existing label in a repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("label ID")),
-		mcp.WithString("name", mcp.Description("new label name")),
-		mcp.WithString("color", mcp.Description("new label color (hex code, e.g., #RRGGBB)")),
-		mcp.WithString("description", mcp.Description("new label description")),
-	)
-
-	DeleteRepoLabelTool = mcp.NewTool(
-		DeleteRepoLabelToolName,
-		mcp.WithDescription("Deletes a label from a repository"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("label ID")),
-	)
-
-	AddIssueLabelsTool = mcp.NewTool(
-		AddIssueLabelsToolName,
-		mcp.WithDescription("Adds one or more labels to an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-		mcp.WithArray("labels", mcp.Required(), mcp.Description("array of label IDs to add"), mcp.Items(map[string]any{"type": "number"})),
-	)
-
-	ReplaceIssueLabelsTool = mcp.NewTool(
-		ReplaceIssueLabelsToolName,
-		mcp.WithDescription("Replaces all labels on an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-		mcp.WithArray("labels", mcp.Required(), mcp.Description("array of label IDs to replace with"), mcp.Items(map[string]any{"type": "number"})),
-	)
-
-	ClearIssueLabelsTool = mcp.NewTool(
-		ClearIssueLabelsToolName,
-		mcp.WithDescription("Removes all labels from an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-	)
-
-	RemoveIssueLabelTool = mcp.NewTool(
-		RemoveIssueLabelToolName,
-		mcp.WithDescription("Removes a single label from an issue"),
-		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-		mcp.WithNumber("index", mcp.Required(), mcp.Description("issue index")),
-		mcp.WithNumber("label_id", mcp.Required(), mcp.Description("label ID to remove")),
-	)
-
-	ListOrgLabelsTool = mcp.NewTool(
-		ListOrgLabelsToolName,
-		mcp.WithDescription("Lists labels defined at organization level"),
-		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
-		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
-		mcp.WithNumber("pageSize", mcp.Description("page size"), mcp.DefaultNumber(30)),
-	)
-
-	CreateOrgLabelTool = mcp.NewTool(
-		CreateOrgLabelToolName,
-		mcp.WithDescription("Creates a new label for an organization"),
-		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
-		mcp.WithString("name", mcp.Required(), mcp.Description("label name")),
-		mcp.WithString("color", mcp.Required(), mcp.Description("label color (hex code, e.g., #RRGGBB)")),
-		mcp.WithString("description", mcp.Description("label description")),
-		mcp.WithBoolean("exclusive", mcp.Description("whether the label is exclusive"), mcp.DefaultBool(false)),
-	)
-
-	EditOrgLabelTool = mcp.NewTool(
-		EditOrgLabelToolName,
-		mcp.WithDescription("Edits an existing organization label"),
-		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("label ID")),
-		mcp.WithString("name", mcp.Description("new label name")),
-		mcp.WithString("color", mcp.Description("new label color (hex code, e.g., #RRGGBB)")),
-		mcp.WithString("description", mcp.Description("new label description")),
-		mcp.WithBoolean("exclusive", mcp.Description("whether the label is exclusive")),
-	)
-
-	DeleteOrgLabelTool = mcp.NewTool(
-		DeleteOrgLabelToolName,
-		mcp.WithDescription("Deletes an organization label by ID"),
-		mcp.WithString("org", mcp.Required(), mcp.Description("organization name")),
-		mcp.WithNumber("id", mcp.Required(), mcp.Description("label ID")),
+		mcp.WithBoolean("exclusive", mcp.Description("whether the label is exclusive (org labels only)")),
 	)
 )
 
 func init() {
 	Tool.RegisterRead(server.ServerTool{
-		Tool:    ListRepoLabelsTool,
-		Handler: ListRepoLabelsFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
-		Tool:    GetRepoLabelTool,
-		Handler: GetRepoLabelFn,
+		Tool:    LabelReadTool,
+		Handler: labelReadFn,
 	})
 	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateRepoLabelTool,
-		Handler: CreateRepoLabelFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    EditRepoLabelTool,
-		Handler: EditRepoLabelFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    DeleteRepoLabelTool,
-		Handler: DeleteRepoLabelFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    AddIssueLabelsTool,
-		Handler: AddIssueLabelsFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    ReplaceIssueLabelsTool,
-		Handler: ReplaceIssueLabelsFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    ClearIssueLabelsTool,
-		Handler: ClearIssueLabelsFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    RemoveIssueLabelTool,
-		Handler: RemoveIssueLabelFn,
-	})
-	Tool.RegisterRead(server.ServerTool{
-		Tool:    ListOrgLabelsTool,
-		Handler: ListOrgLabelsFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    CreateOrgLabelTool,
-		Handler: CreateOrgLabelFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    EditOrgLabelTool,
-		Handler: EditOrgLabelFn,
-	})
-	Tool.RegisterWrite(server.ServerTool{
-		Tool:    DeleteOrgLabelTool,
-		Handler: DeleteOrgLabelFn,
+		Tool:    LabelWriteTool,
+		Handler: labelWriteFn,
 	})
 }
 
-func ListRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListRepoLabelsFn")
+func labelReadFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	method, err := params.GetString(args, "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "list_repo_labels":
+		return listRepoLabelsFn(ctx, req)
+	case "get_repo_label":
+		return getRepoLabelFn(ctx, req)
+	case "list_org_labels":
+		return listOrgLabelsFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func labelWriteFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	args := req.GetArguments()
+	method, err := params.GetString(args, "method")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	switch method {
+	case "create_repo_label":
+		return createRepoLabelFn(ctx, req)
+	case "edit_repo_label":
+		return editRepoLabelFn(ctx, req)
+	case "delete_repo_label":
+		return deleteRepoLabelFn(ctx, req)
+	case "create_org_label":
+		return createOrgLabelFn(ctx, req)
+	case "edit_org_label":
+		return editOrgLabelFn(ctx, req)
+	case "delete_org_label":
+		return deleteOrgLabelFn(ctx, req)
+	default:
+		return to.ErrorResult(fmt.Errorf("unknown method: %s", method))
+	}
+}
+
+func listRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listRepoLabelsFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -237,8 +132,8 @@ func ListRepoLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(slimLabels(labels))
 }
 
-func GetRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called GetRepoLabelFn")
+func getRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called getRepoLabelFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -263,8 +158,8 @@ func GetRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	return to.TextResult(slimLabel(label))
 }
 
-func CreateRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateRepoLabelFn")
+func createRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createRepoLabelFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -300,8 +195,8 @@ func CreateRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	return to.TextResult(slimLabel(label))
 }
 
-func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called EditRepoLabelFn")
+func editRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called editRepoLabelFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -337,8 +232,8 @@ func EditRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(slimLabel(label))
 }
 
-func DeleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteRepoLabelFn")
+func deleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteRepoLabelFn")
 	owner, err := params.GetString(req.GetArguments(), "owner")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -363,148 +258,8 @@ func DeleteRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	return to.TextResult("Label deleted successfully")
 }
 
-func AddIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called AddIssueLabelsFn")
-	owner, err := params.GetString(req.GetArguments(), "owner")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	repo, err := params.GetString(req.GetArguments(), "repo")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	labelsRaw, ok := req.GetArguments()["labels"].([]any)
-	if !ok {
-		return to.ErrorResult(errors.New("labels (array of IDs) is required"))
-	}
-	var labels []int64
-	for _, l := range labelsRaw {
-		if labelID, ok := params.ToInt64(l); ok {
-			labels = append(labels, labelID)
-		} else {
-			return to.ErrorResult(errors.New("invalid label ID in labels array"))
-		}
-	}
-
-	opt := gitea_sdk.IssueLabelsOption{
-		Labels: labels,
-	}
-
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-	issueLabels, _, err := client.AddIssueLabels(owner, repo, index, opt)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("add labels to %v/%v/issue/%v err: %v", owner, repo, index, err))
-	}
-	return to.TextResult(slimLabels(issueLabels))
-}
-
-func ReplaceIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ReplaceIssueLabelsFn")
-	owner, err := params.GetString(req.GetArguments(), "owner")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	repo, err := params.GetString(req.GetArguments(), "repo")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	labelsRaw, ok := req.GetArguments()["labels"].([]any)
-	if !ok {
-		return to.ErrorResult(errors.New("labels (array of IDs) is required"))
-	}
-	var labels []int64
-	for _, l := range labelsRaw {
-		if labelID, ok := params.ToInt64(l); ok {
-			labels = append(labels, labelID)
-		} else {
-			return to.ErrorResult(errors.New("invalid label ID in labels array"))
-		}
-	}
-
-	opt := gitea_sdk.IssueLabelsOption{
-		Labels: labels,
-	}
-
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-	issueLabels, _, err := client.ReplaceIssueLabels(owner, repo, index, opt)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("replace labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
-	}
-	return to.TextResult(slimLabels(issueLabels))
-}
-
-func ClearIssueLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ClearIssueLabelsFn")
-	owner, err := params.GetString(req.GetArguments(), "owner")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	repo, err := params.GetString(req.GetArguments(), "repo")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-	_, err = client.ClearIssueLabels(owner, repo, index)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("clear labels on %v/%v/issue/%v err: %v", owner, repo, index, err))
-	}
-	return to.TextResult("Labels cleared successfully")
-}
-
-func RemoveIssueLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called RemoveIssueLabelFn")
-	owner, err := params.GetString(req.GetArguments(), "owner")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	repo, err := params.GetString(req.GetArguments(), "repo")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	index, err := params.GetIndex(req.GetArguments(), "index")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-	labelID, err := params.GetIndex(req.GetArguments(), "label_id")
-	if err != nil {
-		return to.ErrorResult(err)
-	}
-
-	client, err := gitea.ClientFromContext(ctx)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
-	}
-	_, err = client.DeleteIssueLabel(owner, repo, index, labelID)
-	if err != nil {
-		return to.ErrorResult(fmt.Errorf("remove label %v from %v/%v/issue/%v err: %v", labelID, owner, repo, index, err))
-	}
-	return to.TextResult("Label removed successfully")
-}
-
-func ListOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called ListOrgLabelsFn")
+func listOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called listOrgLabelsFn")
 	org, err := params.GetString(req.GetArguments(), "org")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -528,8 +283,8 @@ func ListOrgLabelsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	return to.TextResult(slimLabels(labels))
 }
 
-func CreateOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called CreateOrgLabelFn")
+func createOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called createOrgLabelFn")
 	org, err := params.GetString(req.GetArguments(), "org")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -563,8 +318,8 @@ func CreateOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	return to.TextResult(slimLabel(label))
 }
 
-func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called EditOrgLabelFn")
+func editOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called editOrgLabelFn")
 	org, err := params.GetString(req.GetArguments(), "org")
 	if err != nil {
 		return to.ErrorResult(err)
@@ -599,8 +354,8 @@ func EditOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	return to.TextResult(slimLabel(label))
 }
 
-func DeleteOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Debugf("Called DeleteOrgLabelFn")
+func deleteOrgLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called deleteOrgLabelFn")
 	org, err := params.GetString(req.GetArguments(), "org")
 	if err != nil {
 		return to.ErrorResult(err)

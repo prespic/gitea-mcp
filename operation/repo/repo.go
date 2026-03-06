@@ -53,7 +53,7 @@ var (
 		ListMyReposToolName,
 		mcp.WithDescription("List my repositories"),
 		mcp.WithNumber("page", mcp.Required(), mcp.Description("Page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-		mcp.WithNumber("pageSize", mcp.Required(), mcp.Description("Page size number"), mcp.DefaultNumber(30), mcp.Min(1)),
+		mcp.WithNumber("perPage", mcp.Required(), mcp.Description("results per page"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
 )
 
@@ -70,39 +70,6 @@ func init() {
 		Tool:    ListMyReposTool,
 		Handler: ListMyReposFn,
 	})
-}
-
-func RegisterTool(s *server.MCPServer) {
-	s.AddTool(CreateRepoTool, CreateRepoFn)
-	s.AddTool(ForkRepoTool, ForkRepoFn)
-	s.AddTool(ListMyReposTool, ListMyReposFn)
-
-	// File
-	s.AddTool(GetFileContentTool, GetFileContentFn)
-	s.AddTool(CreateFileTool, CreateFileFn)
-	s.AddTool(UpdateFileTool, UpdateFileFn)
-	s.AddTool(DeleteFileTool, DeleteFileFn)
-
-	// Branch
-	s.AddTool(CreateBranchTool, CreateBranchFn)
-	s.AddTool(DeleteBranchTool, DeleteBranchFn)
-	s.AddTool(ListBranchesTool, ListBranchesFn)
-
-	// Release
-	s.AddTool(CreateReleaseTool, CreateReleaseFn)
-	s.AddTool(DeleteReleaseTool, DeleteReleaseFn)
-	s.AddTool(GetReleaseTool, GetReleaseFn)
-	s.AddTool(GetLatestReleaseTool, GetLatestReleaseFn)
-	s.AddTool(ListReleasesTool, ListReleasesFn)
-
-	// Tag
-	s.AddTool(CreateTagTool, CreateTagFn)
-	s.AddTool(DeleteTagTool, DeleteTagFn)
-	s.AddTool(GetTagTool, GetTagFn)
-	s.AddTool(ListTagsTool, ListTagsFn)
-
-	// Commit
-	s.AddTool(ListRepoCommitsTool, ListRepoCommitsFn)
 }
 
 func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
