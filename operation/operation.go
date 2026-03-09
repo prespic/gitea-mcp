@@ -2,6 +2,7 @@ package operation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -29,6 +30,23 @@ import (
 )
 
 var mcpServer *server.MCPServer
+
+type noBodyContentTypeResponseWriter struct {
+	http.ResponseWriter
+}
+
+func (w *noBodyContentTypeResponseWriter) WriteHeader(statusCode int) {
+	if (statusCode == http.StatusAccepted || statusCode == http.StatusNoContent) && w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+func withNoBodyContentType(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(&noBodyContentTypeResponseWriter{ResponseWriter: w}, r)
+	})
+}
 
 func RegisterTool(s *server.MCPServer) {
 	// User Tool
@@ -112,12 +130,16 @@ func Run() error {
 			return err
 		}
 	case "http":
-		httpServer := server.NewStreamableHTTPServer(
+		mux := http.NewServeMux()
+		httpServer := &http.Server{Handler: mux}
+		streamableHTTPServer := server.NewStreamableHTTPServer(
 			mcpServer,
 			server.WithLogger(log.New()),
 			server.WithHeartbeatInterval(30*time.Second),
 			server.WithHTTPContextFunc(getContextWithToken),
+			server.WithStreamableHTTPServer(httpServer),
 		)
+		mux.Handle("/mcp", withNoBodyContentType(streamableHTTPServer))
 		log.Infof("Gitea MCP HTTP server listening on :%d", flag.Port)
 
 		// Graceful shutdown setup
@@ -130,13 +152,13 @@ func Run() error {
 			log.Infof("Shutdown signal received, gracefully stopping HTTP server...")
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			if err := streamableHTTPServer.Shutdown(shutdownCtx); err != nil {
 				log.Errorf("HTTP server shutdown error: %v", err)
 			}
 			close(shutdownDone)
 		}()
 
-		if err := httpServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil {
+		if err := streamableHTTPServer.Start(fmt.Sprintf(":%d", flag.Port)); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
 		<-shutdownDone // Wait for shutdown to finish
