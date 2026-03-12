@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
@@ -18,9 +19,10 @@ import (
 var Tool = tool.New()
 
 const (
-	CreateRepoToolName  = "create_repo"
-	ForkRepoToolName    = "fork_repo"
-	ListMyReposToolName = "list_my_repos"
+	CreateRepoToolName   = "create_repo"
+	ForkRepoToolName     = "fork_repo"
+	ListMyReposToolName  = "list_my_repos"
+	ListOrgReposToolName = "list_org_repos"
 )
 
 var (
@@ -55,6 +57,14 @@ var (
 		mcp.WithNumber("page", mcp.Required(), mcp.Description("Page number"), mcp.DefaultNumber(1), mcp.Min(1)),
 		mcp.WithNumber("perPage", mcp.Required(), mcp.Description("results per page"), mcp.DefaultNumber(30), mcp.Min(1)),
 	)
+
+	ListOrgReposTool = mcp.NewTool(
+		ListOrgReposToolName,
+		mcp.WithDescription("List repositories of an organization"),
+		mcp.WithString("org", mcp.Required(), mcp.Description("Organization name")),
+		mcp.WithNumber("page", mcp.Required(), mcp.Description("Page number"), mcp.DefaultNumber(1), mcp.Min(1)),
+		mcp.WithNumber("pageSize", mcp.Required(), mcp.Description("Page size number"), mcp.DefaultNumber(100), mcp.Min(1)),
+	)
 )
 
 func init() {
@@ -69,6 +79,10 @@ func init() {
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    ListMyReposTool,
 		Handler: ListMyReposFn,
+	})
+	Tool.RegisterRead(server.ServerTool{
+		Tool:    ListOrgReposTool,
+		Handler: ListOrgReposFn,
 	})
 }
 
@@ -177,4 +191,35 @@ func ListMyReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 	}
 
 	return to.TextResult(slimRepos(repos))
+}
+
+func ListOrgReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called ListOrgReposFn")
+	org, ok := req.GetArguments()["org"].(string)
+	if !ok {
+		return to.ErrorResult(errors.New("organization name is required"))
+	}
+	page, ok := req.GetArguments()["page"].(float64)
+	if !ok {
+		page = 1
+	}
+	pageSize, ok := req.GetArguments()["pageSize"].(float64)
+	if !ok {
+		pageSize = 100
+	}
+	opt := gitea_sdk.ListOrgReposOptions{
+		ListOptions: gitea_sdk.ListOptions{
+			Page:     int(page),
+			PageSize: int(pageSize),
+		},
+	}
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	repos, _, err := client.ListOrgRepos(org, opt)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("list organization '%s' repositories error: %v", org, err))
+	}
+	return to.TextResult(repos)
 }
