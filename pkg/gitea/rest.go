@@ -44,8 +44,9 @@ func newRESTHTTPClient() *http.Client {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // user-requested insecure mode
 	}
 	return &http.Client{
-		Transport: transport,
-		Timeout:   60 * time.Second,
+		Transport:     transport,
+		Timeout:       60 * time.Second,
+		CheckRedirect: checkRedirect,
 	}
 }
 

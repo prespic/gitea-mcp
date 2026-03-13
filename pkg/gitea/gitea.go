@@ -3,6 +3,7 @@ package gitea
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,7 +14,8 @@ import (
 
 func NewClient(token string) (*gitea.Client, error) {
 	httpClient := &http.Client{
-		Transport: http.DefaultTransport,
+		Transport:     http.DefaultTransport,
+		CheckRedirect: checkRedirect,
 	}
 
 	opts := []gitea.ClientOption{
@@ -36,6 +38,19 @@ func NewClient(token string) (*gitea.Client, error) {
 	// Set user agent for the client
 	client.SetUserAgent("gitea-mcp-server/" + flag.Version)
 	return client, nil
+}
+
+// checkRedirect prevents Go from silently changing mutating requests (POST, PATCH, etc.)
+// to GET when following 301/302/303 redirects, which would drop the request body and
+// make writes appear to succeed when they didn't.
+func checkRedirect(_ *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if via[0].Method != http.MethodGet && via[0].Method != http.MethodHead {
+		return http.ErrUseLastResponse
+	}
+	return nil
 }
 
 func ClientFromContext(ctx context.Context) (*gitea.Client, error) {
