@@ -2,6 +2,7 @@ package wiki
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 
@@ -40,7 +41,7 @@ var (
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("pageName", mcp.Description("wiki page name (required for 'update', 'delete')")),
 		mcp.WithString("title", mcp.Description("wiki page title (required for 'create', optional for 'update')")),
-		mcp.WithString("content_base64", mcp.Description("page content, base64 encoded (required for 'create', 'update')")),
+		mcp.WithString("content", mcp.Description("page content (required for 'create', 'update')")),
 		mcp.WithString("message", mcp.Description("commit message")),
 	)
 )
@@ -176,7 +177,7 @@ func createWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	contentBase64, err := params.GetString(args, "content_base64")
+	content, err := params.GetString(args, "content")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
@@ -188,7 +189,7 @@ func createWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 
 	requestBody := map[string]string{
 		"title":          title,
-		"content_base64": contentBase64,
+		"content_base64": base64.StdEncoding.EncodeToString([]byte(content)),
 		"message":        message,
 	}
 
@@ -216,13 +217,13 @@ func updateWikiPageFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if err != nil {
 		return to.ErrorResult(err)
 	}
-	contentBase64, err := params.GetString(args, "content_base64")
+	content, err := params.GetString(args, "content")
 	if err != nil {
 		return to.ErrorResult(err)
 	}
 
 	requestBody := map[string]string{
-		"content_base64": contentBase64,
+		"content_base64": base64.StdEncoding.EncodeToString([]byte(content)),
 	}
 
 	// If title is given, use it. Otherwise, keep current page name
