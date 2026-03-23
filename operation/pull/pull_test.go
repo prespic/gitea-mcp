@@ -254,6 +254,236 @@ func Test_mergePullRequestFn(t *testing.T) {
 	}
 }
 
+func Test_applyDraftPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		title   string
+		isDraft bool
+		want    string
+	}{
+		{"add prefix", "my feature", true, "WIP: my feature"},
+		{"already prefixed WIP:", "WIP: my feature", true, "WIP: my feature"},
+		{"already prefixed WIP: no space", "WIP:my feature", true, "WIP:my feature"},
+		{"already prefixed [WIP]", "[WIP] my feature", true, "[WIP] my feature"},
+		{"already prefixed case insensitive", "wip: my feature", true, "wip: my feature"},
+		{"already prefixed [wip]", "[wip] my feature", true, "[wip] my feature"},
+		{"remove WIP: prefix", "WIP: my feature", false, "my feature"},
+		{"remove WIP: no space", "WIP:my feature", false, "my feature"},
+		{"remove [WIP] prefix", "[WIP] my feature", false, "my feature"},
+		{"remove [wip] prefix", "[wip] my feature", false, "my feature"},
+		{"remove wip: lowercase", "wip: my feature", false, "my feature"},
+		{"no prefix not draft", "my feature", false, "my feature"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := applyDraftPrefix(tt.title, tt.isDraft)
+			if got != tt.want {
+				t.Fatalf("applyDraftPrefix(%q, %v) = %q, want %q", tt.title, tt.isDraft, got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_createPullRequestFn_draft(t *testing.T) {
+	const (
+		owner = "octo"
+		repo  = "demo"
+	)
+
+	tests := []struct {
+		name      string
+		title     string
+		draft     any // bool or nil (omitted)
+		wantTitle string
+	}{
+		{"draft true", "my feature", true, "WIP: my feature"},
+		{"draft false strips WIP:", "WIP: my feature", false, "my feature"},
+		{"draft false strips [WIP]", "[WIP] my feature", false, "my feature"},
+		{"draft omitted preserves title", "WIP: my feature", nil, "WIP: my feature"},
+		{"draft true already prefixed", "WIP: my feature", true, "WIP: my feature"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mu      sync.Mutex
+				gotBody map[string]any
+			)
+
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/version":
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"version":"1.12.0"}`))
+				case fmt.Sprintf("/api/v1/repos/%s/%s", owner, repo):
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"private":false}`))
+				case fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner, repo):
+					mu.Lock()
+					var body map[string]any
+					_ = json.NewDecoder(r.Body).Decode(&body)
+					gotBody = body
+					mu.Unlock()
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write(fmt.Appendf(nil, `{"number":1,"title":%q,"state":"open"}`, body["title"]))
+				default:
+					http.NotFound(w, r)
+				}
+			})
+
+			server := httptest.NewServer(handler)
+			defer server.Close()
+
+			origHost := flag.Host
+			origToken := flag.Token
+			origVersion := flag.Version
+			flag.Host = server.URL
+			flag.Token = ""
+			flag.Version = "test"
+			defer func() {
+				flag.Host = origHost
+				flag.Token = origToken
+				flag.Version = origVersion
+			}()
+
+			args := map[string]any{
+				"owner": owner,
+				"repo":  repo,
+				"title": tc.title,
+				"body":  "test body",
+				"head":  "feature",
+				"base":  "main",
+			}
+			if tc.draft != nil {
+				args["draft"] = tc.draft
+			}
+
+			req := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Arguments: args,
+				},
+			}
+
+			_, err := createPullRequestFn(context.Background(), req)
+			if err != nil {
+				t.Fatalf("createPullRequestFn() error = %v", err)
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if gotBody["title"] != tc.wantTitle {
+				t.Fatalf("expected title %q, got %v", tc.wantTitle, gotBody["title"])
+			}
+		})
+	}
+}
+
+func Test_editPullRequestFn_draft(t *testing.T) {
+	const (
+		owner = "octo"
+		repo  = "demo"
+		index = 7
+	)
+
+	tests := []struct {
+		name      string
+		title     string // title arg passed to the tool; empty means omitted
+		draft     any
+		wantTitle string
+	}{
+		{"set draft with title", "my feature", true, "WIP: my feature"},
+		{"unset draft with title", "WIP: my feature", false, "my feature"},
+		{"set draft without title fetches current", "", true, "WIP: existing title"},
+		{"unset draft without title fetches current", "", false, "existing title"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				mu      sync.Mutex
+				gotBody map[string]any
+			)
+
+			prPath := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner, repo, index)
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/version":
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"version":"1.12.0"}`))
+				case fmt.Sprintf("/api/v1/repos/%s/%s", owner, repo):
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(`{"private":false}`))
+				case prPath:
+					w.Header().Set("Content-Type", "application/json")
+					if r.Method == http.MethodGet {
+						// Auto-fetch: return the existing PR with its current title
+						_, _ = w.Write(fmt.Appendf(nil, `{"number":%d,"title":"existing title","state":"open"}`, index))
+						return
+					}
+					mu.Lock()
+					var body map[string]any
+					_ = json.NewDecoder(r.Body).Decode(&body)
+					gotBody = body
+					mu.Unlock()
+					title := "existing title"
+					if s, ok := body["title"].(string); ok {
+						title = s
+					}
+					_, _ = w.Write(fmt.Appendf(nil, `{"number":%d,"title":%q,"state":"open"}`, index, title))
+				default:
+					http.NotFound(w, r)
+				}
+			})
+
+			server := httptest.NewServer(handler)
+			defer server.Close()
+
+			origHost := flag.Host
+			origToken := flag.Token
+			origVersion := flag.Version
+			flag.Host = server.URL
+			flag.Token = ""
+			flag.Version = "test"
+			defer func() {
+				flag.Host = origHost
+				flag.Token = origToken
+				flag.Version = origVersion
+			}()
+
+			args := map[string]any{
+				"owner": owner,
+				"repo":  repo,
+				"index": float64(index),
+			}
+			if tc.title != "" {
+				args["title"] = tc.title
+			}
+			if tc.draft != nil {
+				args["draft"] = tc.draft
+			}
+
+			req := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Arguments: args,
+				},
+			}
+
+			_, err := editPullRequestFn(context.Background(), req)
+			if err != nil {
+				t.Fatalf("editPullRequestFn() error = %v", err)
+			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if gotBody["title"] != tc.wantTitle {
+				t.Fatalf("expected title %q, got %v", tc.wantTitle, gotBody["title"])
+			}
+		})
+	}
+}
+
 func Test_getPullRequestDiffFn(t *testing.T) {
 	const (
 		owner   = "octo"

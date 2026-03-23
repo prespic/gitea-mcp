@@ -3,6 +3,7 @@ package pull
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -71,6 +72,7 @@ var (
 		mcp.WithBoolean("delete_branch", mcp.Description("delete branch after merge (for 'merge')")),
 		mcp.WithArray("reviewers", mcp.Description("reviewer usernames (for 'add_reviewers', 'remove_reviewers')"), mcp.Items(map[string]any{"type": "string"})),
 		mcp.WithArray("team_reviewers", mcp.Description("team reviewer names (for 'add_reviewers', 'remove_reviewers')"), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithBoolean("draft", mcp.Description("mark PR as draft (for 'create', 'update'). Gitea uses a 'WIP: ' title prefix for drafts.")),
 	)
 
 	PullRequestReviewWriteTool = mcp.NewTool(
@@ -271,6 +273,28 @@ func listRepoPullRequestsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	return to.TextResult(slimPullRequests(pullRequests))
 }
 
+// defaultWIPPrefixes are the default Gitea title prefixes that mark a PR as
+// work-in-progress / draft. Gitea matches these case-insensitively.
+var defaultWIPPrefixes = []string{"WIP:", "[WIP]"}
+
+// applyDraftPrefix adds or removes a WIP title prefix that Gitea uses to mark
+// pull requests as drafts. When the title already carries a recognized prefix
+// and isDraft is true, the title is returned unchanged to avoid normalization.
+func applyDraftPrefix(title string, isDraft bool) string {
+	for _, prefix := range defaultWIPPrefixes {
+		if len(title) >= len(prefix) && strings.EqualFold(title[:len(prefix)], prefix) {
+			if isDraft {
+				return title
+			}
+			return strings.TrimLeft(title[len(prefix):], " ")
+		}
+	}
+	if isDraft {
+		return "WIP: " + title
+	}
+	return title
+}
+
 func createPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	log.Debugf("Called createPullRequestFn")
 	args := req.GetArguments()
@@ -298,6 +322,11 @@ func createPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return to.ErrorResult(err)
 	}
+
+	if draft, ok := args["draft"].(bool); ok {
+		title = applyDraftPrefix(title, draft)
+	}
+
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
@@ -773,6 +802,22 @@ func editPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 
 	if title, ok := args["title"].(string); ok {
 		opt.Title = title
+	}
+	if draft, ok := args["draft"].(bool); ok {
+		if opt.Title == "" {
+			// Fetch current title so the caller doesn't have to provide it
+			// just to toggle draft status.
+			client, err := gitea.ClientFromContext(ctx)
+			if err != nil {
+				return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+			}
+			pr, _, err := client.GetPullRequest(owner, repo, index)
+			if err != nil {
+				return to.ErrorResult(fmt.Errorf("get %v/%v/pr/%v err: %v", owner, repo, index, err))
+			}
+			opt.Title = pr.Title
+		}
+		opt.Title = applyDraftPrefix(opt.Title, draft)
 	}
 	if body, ok := args["body"].(string); ok {
 		opt.Body = new(body)
