@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.com/gitea/gitea-mcp/pkg/gitea"
 	"gitea.com/gitea/gitea-mcp/pkg/log"
@@ -21,6 +22,7 @@ const (
 	SearchUsersToolName    = "search_users"
 	SearchOrgTeamsToolName = "search_org_teams"
 	SearchReposToolName    = "search_repos"
+	SearchIssuesToolName   = "search_issues"
 )
 
 var (
@@ -56,6 +58,18 @@ var (
 		mcp.WithNumber("page", mcp.Description("Page"), mcp.DefaultNumber(1)),
 		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
+
+	SearchIssuesTool = mcp.NewTool(
+		SearchIssuesToolName,
+		mcp.WithDescription("Search for issues and pull requests across all accessible repositories"),
+		mcp.WithString("query", mcp.Required(), mcp.Description("search keyword")),
+		mcp.WithString("state", mcp.Description("filter by state: open, closed, all"), mcp.Enum("open", "closed", "all")),
+		mcp.WithString("type", mcp.Description("filter by type: issues, pulls"), mcp.Enum("issues", "pulls")),
+		mcp.WithString("labels", mcp.Description("comma-separated list of label names")),
+		mcp.WithString("owner", mcp.Description("filter by repository owner")),
+		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
+	)
 )
 
 func init() {
@@ -70,6 +84,10 @@ func init() {
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    SearchReposTool,
 		Handler: ReposFn,
+	})
+	Tool.RegisterRead(server.ServerTool{
+		Tool:    SearchIssuesTool,
+		Handler: IssuesFn,
 	})
 }
 
@@ -174,4 +192,43 @@ func ReposFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult,
 		return to.ErrorResult(fmt.Errorf("search repos error: %v", err))
 	}
 	return to.TextResult(slimRepos(repos))
+}
+
+func IssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called IssuesFn")
+	args := req.GetArguments()
+	query, err := params.GetString(args, "query")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	page, pageSize := params.GetPagination(args, 30)
+
+	opt := gitea_sdk.ListIssueOption{
+		KeyWord: query,
+		ListOptions: gitea_sdk.ListOptions{
+			Page:     page,
+			PageSize: pageSize,
+		},
+	}
+	if state, ok := args["state"].(string); ok {
+		opt.State = gitea_sdk.StateType(state)
+	}
+	if issueType, ok := args["type"].(string); ok {
+		opt.Type = gitea_sdk.IssueType(issueType)
+	}
+	if labels, ok := args["labels"].(string); ok && labels != "" {
+		opt.Labels = strings.Split(labels, ",")
+	}
+	if owner, ok := args["owner"].(string); ok {
+		opt.Owner = owner
+	}
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	issues, _, err := client.ListIssues(opt)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("search issues err: %v", err))
+	}
+	return to.TextResult(slimIssues(issues))
 }

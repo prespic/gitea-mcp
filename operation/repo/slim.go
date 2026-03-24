@@ -184,6 +184,28 @@ func slimContents(c *gitea_sdk.ContentsResponse) map[string]any {
 	return m
 }
 
+func slimTree(t *gitea_sdk.GitTreeResponse) map[string]any {
+	if t == nil {
+		return nil
+	}
+	entries := make([]map[string]any, 0, len(t.Entries))
+	for _, e := range t.Entries {
+		entries = append(entries, map[string]any{
+			"path": e.Path,
+			"mode": e.Mode,
+			"type": e.Type,
+			"size": e.Size,
+			"sha":  e.SHA,
+		})
+	}
+	return map[string]any{
+		"sha":         t.SHA,
+		"truncated":   t.Truncated,
+		"total_count": t.TotalCount,
+		"tree":        entries,
+	}
+}
+
 func slimDirEntries(entries []*gitea_sdk.ContentsResponse) []map[string]any {
 	out := make([]map[string]any, 0, len(entries))
 	for _, c := range entries {

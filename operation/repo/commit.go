@@ -16,23 +16,38 @@ import (
 
 const (
 	ListRepoCommitsToolName = "list_commits"
+	GetCommitToolName       = "get_commit"
 )
 
-var ListRepoCommitsTool = mcp.NewTool(
-	ListRepoCommitsToolName,
-	mcp.WithDescription("List repository commits"),
-	mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
-	mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
-	mcp.WithString("sha", mcp.Description("SHA or branch to start listing commits from")),
-	mcp.WithString("path", mcp.Description("path indicates that only commits that include the path's file/dir should be returned.")),
-	mcp.WithNumber("page", mcp.Required(), mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
-	mcp.WithNumber("perPage", mcp.Required(), mcp.Description("results per page"), mcp.DefaultNumber(30), mcp.Min(1)),
+var (
+	ListRepoCommitsTool = mcp.NewTool(
+		ListRepoCommitsToolName,
+		mcp.WithDescription("List repository commits"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithString("sha", mcp.Description("SHA or branch to start listing commits from")),
+		mcp.WithString("path", mcp.Description("path indicates that only commits that include the path's file/dir should be returned.")),
+		mcp.WithNumber("page", mcp.Required(), mcp.Description("page number"), mcp.DefaultNumber(1), mcp.Min(1)),
+		mcp.WithNumber("perPage", mcp.Required(), mcp.Description("results per page"), mcp.DefaultNumber(30), mcp.Min(1)),
+	)
+
+	GetCommitTool = mcp.NewTool(
+		GetCommitToolName,
+		mcp.WithDescription("Get details of a specific commit"),
+		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
+		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithString("sha", mcp.Required(), mcp.Description("commit SHA")),
+	)
 )
 
 func init() {
 	Tool.RegisterRead(server.ServerTool{
 		Tool:    ListRepoCommitsTool,
 		Handler: ListRepoCommitsFn,
+	})
+	Tool.RegisterRead(server.ServerTool{
+		Tool:    GetCommitTool,
+		Handler: GetCommitFn,
 	})
 }
 
@@ -74,4 +89,30 @@ func ListRepoCommitsFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 		return to.ErrorResult(fmt.Errorf("list repo commits err: %v", err))
 	}
 	return to.TextResult(slimCommits(commits))
+}
+
+func GetCommitFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	log.Debugf("Called GetCommitFn")
+	args := req.GetArguments()
+	owner, err := params.GetString(args, "owner")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	repo, err := params.GetString(args, "repo")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	sha, err := params.GetString(args, "sha")
+	if err != nil {
+		return to.ErrorResult(err)
+	}
+	client, err := gitea.ClientFromContext(ctx)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
+	}
+	commit, _, err := client.GetSingleCommit(owner, repo, sha)
+	if err != nil {
+		return to.ErrorResult(fmt.Errorf("get commit %v err: %v", sha, err))
+	}
+	return to.TextResult(slimCommit(commit))
 }

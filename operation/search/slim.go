@@ -86,3 +86,53 @@ func slimRepos(repos []*gitea_sdk.Repository) []map[string]any {
 	}
 	return out
 }
+
+func userLogin(u *gitea_sdk.User) string {
+	if u == nil {
+		return ""
+	}
+	return u.UserName
+}
+
+func labelNames(labels []*gitea_sdk.Label) []string {
+	if len(labels) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(labels))
+	for _, l := range labels {
+		if l != nil {
+			out = append(out, l.Name)
+		}
+	}
+	return out
+}
+
+func slimIssues(issues []*gitea_sdk.Issue) []map[string]any {
+	out := make([]map[string]any, 0, len(issues))
+	for _, i := range issues {
+		if i == nil {
+			continue
+		}
+		m := map[string]any{
+			"number":     i.Index,
+			"title":      i.Title,
+			"state":      i.State,
+			"html_url":   i.HTMLURL,
+			"user":       userLogin(i.Poster),
+			"comments":   i.Comments,
+			"created_at": i.Created,
+			"updated_at": i.Updated,
+		}
+		if len(i.Labels) > 0 {
+			m["labels"] = labelNames(i.Labels)
+		}
+		if i.Repository != nil {
+			m["repository"] = i.Repository.FullName
+		}
+		if i.PullRequest != nil {
+			m["is_pull"] = true
+		}
+		out = append(out, m)
+	}
+	return out
+}
