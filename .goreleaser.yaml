@@ -70,7 +70,5 @@ release:
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
-gitea_urls:
-  api: https://gitea.com/api/v1
-  download: https://gitea.com
-force_token: gitea
+github_urls:
+  download: https://github.com
