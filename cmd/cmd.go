@@ -89,7 +89,7 @@ func init() {
 	}
 
 	if tools != "" {
-		for _, t := range strings.Split(tools, ",") {
+		for t := range strings.SplitSeq(tools, ",") {
 			if t = strings.TrimSpace(t); t != "" {
 				flagPkg.AllowedTools = append(flagPkg.AllowedTools, t)
 			}
