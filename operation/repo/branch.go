@@ -43,6 +43,8 @@ var (
 		mcp.WithDescription("List branches"),
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
+		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
+		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
 )
 
@@ -131,10 +133,11 @@ func ListBranchesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTool
 	if err != nil {
 		return to.ErrorResult(err)
 	}
+	page, pageSize := params.GetPagination(args, 30)
 	opt := gitea_sdk.ListRepoBranchesOptions{
 		ListOptions: gitea_sdk.ListOptions{
-			Page:     1,
-			PageSize: 30,
+			Page:     page,
+			PageSize: pageSize,
 		},
 	}
 	client, err := gitea.ClientFromContext(ctx)

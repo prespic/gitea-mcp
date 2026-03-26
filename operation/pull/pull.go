@@ -67,9 +67,15 @@ var (
 		mcp.WithNumber("milestone", mcp.Description("milestone number (for 'update')")),
 		mcp.WithString("state", mcp.Description("PR state (for 'update')"), mcp.Enum("open", "closed")),
 		mcp.WithBoolean("allow_maintainer_edit", mcp.Description("allow maintainer to edit (for 'update')")),
+		mcp.WithArray("labels", mcp.Description("array of label IDs (for 'create', 'update')"), mcp.Items(map[string]any{"type": "number"})),
+		mcp.WithString("deadline", mcp.Description("due date in ISO 8601 format (for 'create', 'update')")),
+		mcp.WithBoolean("remove_deadline", mcp.Description("unset due date (for 'update')")),
 		mcp.WithString("merge_style", mcp.Description("merge style (for 'merge')"), mcp.Enum("merge", "rebase", "rebase-merge", "squash", "fast-forward-only"), mcp.DefaultString("merge")),
 		mcp.WithString("message", mcp.Description("merge commit message (for 'merge') or dismissal reason")),
 		mcp.WithBoolean("delete_branch", mcp.Description("delete branch after merge (for 'merge')")),
+		mcp.WithBoolean("force_merge", mcp.Description("force merge even if checks are not passing (for 'merge')")),
+		mcp.WithBoolean("merge_when_checks_succeed", mcp.Description("auto-merge when checks succeed (for 'merge')")),
+		mcp.WithString("head_commit_id", mcp.Description("expected head commit SHA for merge conflict detection (for 'merge')")),
 		mcp.WithArray("reviewers", mcp.Description("reviewer usernames (for 'add_reviewers', 'remove_reviewers')"), mcp.Items(map[string]any{"type": "string"})),
 		mcp.WithArray("team_reviewers", mcp.Description("team reviewer names (for 'add_reviewers', 'remove_reviewers')"), mcp.Items(map[string]any{"type": "string"})),
 		mcp.WithBoolean("draft", mcp.Description("mark PR as draft (for 'create', 'update'). Gitea uses a 'WIP: ' title prefix for drafts.")),
@@ -331,12 +337,17 @@ func createPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
-	pr, _, err := client.CreatePullRequest(owner, repo, gitea_sdk.CreatePullRequestOption{
+	opt := gitea_sdk.CreatePullRequestOption{
 		Title: title,
 		Body:  body,
 		Head:  head,
 		Base:  base,
-	})
+	}
+	if labelIDs, err := params.GetInt64Slice(args, "labels"); err == nil {
+		opt.Labels = labelIDs
+	}
+	opt.Deadline = params.GetOptionalTime(args, "deadline")
+	pr, _, err := client.CreatePullRequest(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/%v/pull_request err: %v", owner, repo, err))
 	}
@@ -751,11 +762,18 @@ func mergePullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.Call
 		return to.ErrorResult(fmt.Errorf("get gitea client err: %v", err))
 	}
 
+	forceMerge, _ := args["force_merge"].(bool)
+	mergeWhenChecksSucceed, _ := args["merge_when_checks_succeed"].(bool)
+	headCommitID, _ := args["head_commit_id"].(string)
+
 	opt := gitea_sdk.MergePullRequestOption{
 		Style:                  gitea_sdk.MergeStyle(mergeStyle),
 		Title:                  title,
 		Message:                message,
 		DeleteBranchAfterMerge: deleteBranch,
+		ForceMerge:             forceMerge,
+		MergeWhenChecksSucceed: mergeWhenChecksSucceed,
+		HeadCommitId:           headCommitID,
 	}
 
 	merged, resp, err := client.MergePullRequest(owner, repo, index, opt)
@@ -841,6 +859,13 @@ func editPullRequestFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	if allowMaintainerEdit, ok := args["allow_maintainer_edit"].(bool); ok {
 		opt.AllowMaintainerEdit = new(allowMaintainerEdit)
+	}
+	if labelIDs, err := params.GetInt64Slice(args, "labels"); err == nil {
+		opt.Labels = labelIDs
+	}
+	opt.Deadline = params.GetOptionalTime(args, "deadline")
+	if removeDeadline, ok := args["remove_deadline"].(bool); ok {
+		opt.RemoveDeadline = &removeDeadline
 	}
 
 	client, err := gitea.ClientFromContext(ctx)

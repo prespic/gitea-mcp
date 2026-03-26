@@ -3,6 +3,7 @@ package params
 import (
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // GetString extracts a required string parameter from MCP tool arguments.
@@ -99,6 +100,18 @@ func GetInt64Slice(args map[string]any, key string) ([]int64, error) {
 		out = append(out, id)
 	}
 	return out, nil
+}
+
+// GetOptionalTime extracts an optional RFC3339 timestamp parameter, returning nil if missing or unparseable.
+func GetOptionalTime(args map[string]any, key string) *time.Time {
+	val, ok := args[key].(string)
+	if !ok {
+		return nil
+	}
+	if t, err := time.Parse(time.RFC3339, val); err == nil {
+		return &t
+	}
+	return nil
 }
 
 // GetOptionalInt extracts an optional integer parameter from MCP tool arguments.

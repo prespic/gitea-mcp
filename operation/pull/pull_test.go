@@ -254,6 +254,168 @@ func Test_mergePullRequestFn(t *testing.T) {
 	}
 }
 
+func Test_mergePullRequestFn_newParams(t *testing.T) {
+	const (
+		owner = "octo"
+		repo  = "demo"
+		index = 8
+	)
+
+	var (
+		mu      sync.Mutex
+		gotBody map[string]any
+	)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"1.12.0"}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s", owner, repo):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"private":false}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner, repo, index):
+			mu.Lock()
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			gotBody = body
+			mu.Unlock()
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	origHost := flag.Host
+	origToken := flag.Token
+	origVersion := flag.Version
+	flag.Host = server.URL
+	flag.Token = ""
+	flag.Version = "test"
+	defer func() {
+		flag.Host = origHost
+		flag.Token = origToken
+		flag.Version = origVersion
+	}()
+
+	req := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Arguments: map[string]any{
+				"owner":                     owner,
+				"repo":                      repo,
+				"index":                     float64(index),
+				"merge_style":               "merge",
+				"force_merge":               true,
+				"merge_when_checks_succeed": true,
+				"head_commit_id":            "abc123",
+			},
+		},
+	}
+
+	_, err := mergePullRequestFn(context.Background(), req)
+	if err != nil {
+		t.Fatalf("mergePullRequestFn() error = %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if gotBody["force_merge"] != true {
+		t.Fatalf("expected force_merge true, got %v", gotBody["force_merge"])
+	}
+	if gotBody["merge_when_checks_succeed"] != true {
+		t.Fatalf("expected merge_when_checks_succeed true, got %v", gotBody["merge_when_checks_succeed"])
+	}
+	if gotBody["head_commit_id"] != "abc123" {
+		t.Fatalf("expected head_commit_id 'abc123', got %v", gotBody["head_commit_id"])
+	}
+}
+
+func Test_createPullRequestFn_labels(t *testing.T) {
+	const (
+		owner = "octo"
+		repo  = "demo"
+	)
+
+	var (
+		mu      sync.Mutex
+		gotBody map[string]any
+	)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"version":"1.12.0"}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s", owner, repo):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"private":false}`))
+		case fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner, repo):
+			mu.Lock()
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			gotBody = body
+			mu.Unlock()
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"number":1,"title":"test","state":"open"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	origHost := flag.Host
+	origToken := flag.Token
+	origVersion := flag.Version
+	flag.Host = server.URL
+	flag.Token = ""
+	flag.Version = "test"
+	defer func() {
+		flag.Host = origHost
+		flag.Token = origToken
+		flag.Version = origVersion
+	}()
+
+	req := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Arguments: map[string]any{
+				"owner":    owner,
+				"repo":     repo,
+				"title":    "test",
+				"body":     "body",
+				"head":     "feature",
+				"base":     "main",
+				"labels":   []any{float64(1), float64(2)},
+				"deadline": "2026-06-01T00:00:00Z",
+			},
+		},
+	}
+
+	_, err := createPullRequestFn(context.Background(), req)
+	if err != nil {
+		t.Fatalf("createPullRequestFn() error = %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	labels, ok := gotBody["labels"].([]any)
+	if !ok || len(labels) != 2 {
+		t.Fatalf("expected 2 labels, got %v", gotBody["labels"])
+	}
+	if labels[0] != float64(1) || labels[1] != float64(2) {
+		t.Fatalf("expected labels [1,2], got %v", labels)
+	}
+	if gotBody["due_date"] == nil {
+		t.Fatalf("expected due_date to be set")
+	}
+}
+
 func Test_applyDraftPrefix(t *testing.T) {
 	tests := []struct {
 		name    string

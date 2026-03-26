@@ -39,6 +39,8 @@ var (
 		mcp.WithString("license", mcp.Description("License to use")),
 		mcp.WithString("readme", mcp.Description("Readme of the repository to create")),
 		mcp.WithString("default_branch", mcp.Description("DefaultBranch of the repository (used when initializes and in template)")),
+		mcp.WithString("trust_model", mcp.Description("Trust model for verifying GPG signatures"), mcp.Enum("default", "collaborator", "committer", "collaboratorcommitter")),
+		mcp.WithString("object_format_name", mcp.Description("Object format: sha1 or sha256"), mcp.Enum("sha1", "sha256")),
 		mcp.WithString("organization", mcp.Description("Organization name to create repository in (optional - defaults to personal account)")),
 	)
 
@@ -102,19 +104,23 @@ func CreateRepoFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRe
 	license, _ := args["license"].(string)
 	readme, _ := args["readme"].(string)
 	defaultBranch, _ := args["default_branch"].(string)
+	trustModel, _ := args["trust_model"].(string)
+	objectFormatName, _ := args["object_format_name"].(string)
 	organization, _ := args["organization"].(string)
 
 	opt := gitea_sdk.CreateRepoOption{
-		Name:          name,
-		Description:   description,
-		Private:       private,
-		IssueLabels:   issueLabels,
-		AutoInit:      autoInit,
-		Template:      template,
-		Gitignores:    gitignores,
-		License:       license,
-		Readme:        readme,
-		DefaultBranch: defaultBranch,
+		Name:             name,
+		Description:      description,
+		Private:          private,
+		IssueLabels:      issueLabels,
+		AutoInit:         autoInit,
+		Template:         template,
+		Gitignores:       gitignores,
+		License:          license,
+		Readme:           readme,
+		DefaultBranch:    defaultBranch,
+		TrustModel:       gitea_sdk.TrustModel(trustModel),
+		ObjectFormatName: objectFormatName,
 	}
 
 	var repo *gitea_sdk.Repository

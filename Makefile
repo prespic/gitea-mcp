@@ -8,7 +8,7 @@ GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
 
 .PHONY: help
-help: ## Print this help message.
+help: ## print this help message
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
@@ -16,7 +16,7 @@ help: ## Print this help message.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: build ## Install the application.
+install: build ## install the application
 	@echo "Installing $(EXECUTABLE)..."
 	@mkdir -p $(GOPATH)/bin
 	@cp $(EXECUTABLE) $(GOPATH)/bin/$(EXECUTABLE)
@@ -24,23 +24,23 @@ install: build ## Install the application.
 	@echo "Please add $(GOPATH)/bin to your PATH if it is not already there."
 
 .PHONY: uninstall
-uninstall: ## Uninstall the application.
+uninstall: ## uninstall the application
 	@echo "Uninstalling $(EXECUTABLE)..."
 	@rm -f $(GOPATH)/bin/$(EXECUTABLE)
 	@echo "Uninstalled $(EXECUTABLE) from $(GOPATH)/bin/$(EXECUTABLE)"
 
 .PHONY: clean
-clean: ## Clean the build artifacts.
+clean: ## delete build artifacts
 	@echo "Cleaning up build artifacts..."
 	@rm -f $(EXECUTABLE)
 	@echo "Cleaned up $(EXECUTABLE)"
 
 .PHONY: build
-build: ## Build the application.
+build: ## build the application
 	$(GO) build -v -ldflags '-s -w $(LDFLAGS)' -o $(EXECUTABLE)
 
 .PHONY: air
-air: ## Install air for hot reload.
+air: ## install air for hot reload
 	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install github.com/air-verse/air@latest; \
 	fi
@@ -48,6 +48,10 @@ air: ## Install air for hot reload.
 .PHONY: dev
 dev: air ## run the application with hot reload
 	air --build.cmd "make build" --build.bin ./gitea-mcp
+
+.PHONY: fmt
+fmt: ## format the Go code
+	$(GO) run $(GOFUMPT_PACKAGE) -w .
 
 .PHONY: lint
 lint: lint-go ## lint everything

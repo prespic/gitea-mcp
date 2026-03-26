@@ -30,6 +30,9 @@ var (
 		mcp.WithString("owner", mcp.Required(), mcp.Description("repository owner")),
 		mcp.WithString("repo", mcp.Required(), mcp.Description("repository name")),
 		mcp.WithString("state", mcp.Description("issue state"), mcp.DefaultString("all")),
+		mcp.WithArray("labels", mcp.Description("filter by label names"), mcp.Items(map[string]any{"type": "string"})),
+		mcp.WithString("since", mcp.Description("filter issues updated after this ISO 8601 timestamp")),
+		mcp.WithString("before", mcp.Description("filter issues updated before this ISO 8601 timestamp")),
 		mcp.WithNumber("page", mcp.Description("page number"), mcp.DefaultNumber(1)),
 		mcp.WithNumber("perPage", mcp.Description("results per page"), mcp.DefaultNumber(30)),
 	)
@@ -56,8 +59,10 @@ var (
 		mcp.WithNumber("milestone", mcp.Description("milestone number (for 'create', 'update')")),
 		mcp.WithString("state", mcp.Description("issue state, one of open, closed, all (for 'update')")),
 		mcp.WithNumber("commentID", mcp.Description("id of issue comment (required for 'edit_comment')")),
-		mcp.WithArray("labels", mcp.Description("array of label IDs (for 'add_labels', 'replace_labels')"), mcp.Items(map[string]any{"type": "number"})),
+		mcp.WithArray("labels", mcp.Description("array of label IDs (for 'create', 'add_labels', 'replace_labels')"), mcp.Items(map[string]any{"type": "number"})),
 		mcp.WithNumber("label_id", mcp.Description("label ID to remove (required for 'remove_label')")),
+		mcp.WithString("deadline", mcp.Description("due date in ISO 8601 format (for 'create', 'update')")),
+		mcp.WithBoolean("remove_deadline", mcp.Description("unset due date (for 'update')")),
 	)
 )
 
@@ -162,13 +167,21 @@ func listRepoIssuesFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallTo
 	if !ok {
 		state = "all"
 	}
+	labels := params.GetStringSlice(req.GetArguments(), "labels")
 	page, pageSize := params.GetPagination(req.GetArguments(), 30)
 	opt := gitea_sdk.ListIssueOption{
-		State: gitea_sdk.StateType(state),
+		State:  gitea_sdk.StateType(state),
+		Labels: labels,
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     page,
 			PageSize: pageSize,
 		},
+	}
+	if t := params.GetOptionalTime(req.GetArguments(), "since"); t != nil {
+		opt.Since = *t
+	}
+	if t := params.GetOptionalTime(req.GetArguments(), "before"); t != nil {
+		opt.Before = *t
 	}
 	client, err := gitea.ClientFromContext(ctx)
 	if err != nil {
@@ -213,6 +226,10 @@ func createIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolR
 			opt.Milestone = milestone
 		}
 	}
+	if labelIDs, err := params.GetInt64Slice(req.GetArguments(), "labels"); err == nil {
+		opt.Labels = labelIDs
+	}
+	opt.Deadline = params.GetOptionalTime(req.GetArguments(), "deadline")
 	issue, _, err := client.CreateIssue(owner, repo, opt)
 	if err != nil {
 		return to.ErrorResult(fmt.Errorf("create %v/%v/issue err: %v", owner, repo, err))
@@ -288,6 +305,10 @@ func editIssueFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolRes
 	state, ok := req.GetArguments()["state"].(string)
 	if ok {
 		opt.State = new(gitea_sdk.StateType(state))
+	}
+	opt.Deadline = params.GetOptionalTime(req.GetArguments(), "deadline")
+	if removeDeadline, ok := req.GetArguments()["remove_deadline"].(bool); ok {
+		opt.RemoveDeadline = &removeDeadline
 	}
 
 	client, err := gitea.ClientFromContext(ctx)

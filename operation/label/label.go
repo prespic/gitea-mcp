@@ -47,6 +47,7 @@ var (
 		mcp.WithString("color", mcp.Description("label color hex code e.g. #RRGGBB (required for create, optional for edit)")),
 		mcp.WithString("description", mcp.Description("label description")),
 		mcp.WithBoolean("exclusive", mcp.Description("whether the label is exclusive (org labels only)")),
+		mcp.WithBoolean("is_archived", mcp.Description("whether the label is archived (for create/edit repo label methods)")),
 	)
 )
 
@@ -178,10 +179,13 @@ func createRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallT
 	}
 	description, _ := req.GetArguments()["description"].(string) // Optional
 
+	isArchived, _ := req.GetArguments()["is_archived"].(bool)
+
 	opt := gitea_sdk.CreateLabelOption{
 		Name:        name,
 		Color:       color,
 		Description: description,
+		IsArchived:  isArchived,
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
@@ -219,6 +223,9 @@ func editRepoLabelFn(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToo
 	}
 	if description, ok := req.GetArguments()["description"].(string); ok {
 		opt.Description = new(description)
+	}
+	if isArchived, ok := req.GetArguments()["is_archived"].(bool); ok {
+		opt.IsArchived = &isArchived
 	}
 
 	client, err := gitea.ClientFromContext(ctx)
