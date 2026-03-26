@@ -42,7 +42,8 @@ This is a **Gitea MCP (Model Context Protocol) Server** written in Go that provi
 **Key Configuration**:
 
 - Default Gitea host: `https://gitea.com` (override with `--host` or `GITEA_HOST`)
-- Environment variables can override CLI flags: `MCP_MODE`, `GITEA_READONLY`, `GITEA_DEBUG`, `GITEA_INSECURE`
+- Environment variables can override CLI flags: `MCP_MODE`, `GITEA_READONLY`, `GITEA_DEBUG`, `GITEA_INSECURE`, `GITEA_TOOLS`
+- `--tools` flag (or `GITEA_TOOLS` env var) accepts a comma-separated list of tool names to expose, reducing MCP client context token usage
 - Logs are written to `~/.gitea-mcp/gitea-mcp.log` with rotation
 
 ## Available Tools
